@@ -17,24 +17,11 @@ Point3D = Tuple[float, float, float]    # (x, y, z)
 Frame2D = Tuple[float, float, float]    # (x, y, phi)
 Frame3D = Tuple
 
-# Measured at:
-# "     x,   y,   z,      rx,  ry,     rz"
-# "350.00, 350, 730, -180.00, 0.0, 135.00"
-intrinsic = np.array([
-    [1.37792826e+03, 0.00000000e+00, 6.59752738e+02],
-    [0.00000000e+00, 1.37632357e+03, 5.44888633e+02],
-    [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
+trans = np.array([
+    [ 4.24874063e-01, -5.50007867e-01,  4.46992509e+02],
+    [ 2.05625446e-02, -6.19755392e-02,  3.74770116e+02],
+    [-1.19834231e-05, -5.16036507e-06,  1.00000000e+00],
 ])
-distortion = np.array([[
-    1.54761726e-01, -4.84702069e-01,  3.24862920e-04,  1.57942165e-02, -3.63065079e-01
-]])
-undistorted_intrinsic = np.array([
-    [1.30196814e+03, 0.00000000e+00, 6.95057417e+02],
-    [0.00000000e+00, 1.28375269e+03, 5.58235465e+02],
-    [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
-])
-# roi = (60, 58, 1204, 880)
-f = 1376.0
 
 arm_position = (350, 350, 730)
 arm_orientation = (-180, 0, 135)
@@ -48,6 +35,12 @@ extrinsic = np.concatenate((rot, t), axis=1)
 T = np.concatenate(
     (np.concatenate((rot, [[350], [350], [730]]), axis=1), [[0, 0, 0, 1]]), axis=0
 )
+
+def img2world(image_point: Point2D) -> Point2D:
+    x, y = image_point
+    new_point = trans @ np.array([x, y, 1]).T
+    return new_point[:2]
+
 
 # TODO: Maybe, we can split the modules as detector and controller.
 

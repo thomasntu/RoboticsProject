@@ -5,8 +5,7 @@ src/*
 !src/send_script
 src/send_script/*
 !src/send_script/send_script
-images/*
-!images/README.md
+images/IMG.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

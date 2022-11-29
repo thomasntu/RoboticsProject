@@ -45,29 +45,7 @@ def set_io(state):
     gripper_cli.call_async(io_cmd)
     gripper_node.destroy_node()
 
-def main(args=None):
-
-    rclpy.init(args=args)
-
-    print("MAIN2")
-
-    #--- move command by joint angle ---#
-    # script = 'PTP(\"JPP\",45,0,90,0,90,0,35,200,0,false)'
-
-    #--- move command by end effector's pose (x,y,z,a,b,c) ---#
-    # targetP1 = "398.97, -122.27, 748.26, -179.62, 0.25, 90.12"s
-
-    # Initial camera position for taking image (Please do not change the values)
-    # For right arm: targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
-    # For left  arm: targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
-    # set_io(0.0)
-
-    targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
-    script1 = "PTP(\"CPP\","+targetP1+",100,200,0,false)"
-    send_script(script1)
-
-    send_script("Vision_DoJob(job1)")
-
+def loop():
     start = time.time()
 
     while True:
@@ -86,13 +64,10 @@ def main(args=None):
             target_z = 100
 
             # TODO: Tune robot arm orientation (rz)
-            for object in objs[:1]:
+            for object in objs:
                 cx, cy, phi = object
-                x, y = shapes.img2camera((cx - 640, cy - 480))
-
-                x, y, _, _ = shapes.T @ np.array([x, y + 85, 0, 1])
+                x, y = shapes.img2world((cx, cy))
                 angle = (135 - 90 - m.degrees(phi)) % 360
-
 
                 frame = f"{x:.0f}, {y:.0f}, 200, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
@@ -108,21 +83,47 @@ def main(args=None):
 
                 set_io(1.0)
 
-                # target = f"350, 350, {target_z:.0f}, -180.00, 0.0, 135"
-                # target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
+                target = f"350, 350, {target_z:.0f}, -180.00, 0.0, 135"
+                target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
 
-                # target_z += 50
+                target_z += 50
 
-                # send_script(target_ptp)
-                # set_io(0.0)
+                send_script(target_ptp)
+                set_io(0.0)
 
-                # target = f"350, 350, {target_z + 100:.0f}, -180.00, 0.0, 135"
-                # target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
+                target = f"350, 350, {target_z + 100:.0f}, -180.00, 0.0, 135"
+                target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
 
-                # send_script(target_ptp)
+                send_script(target_ptp)
 
         elif time.time() - start > 1000:
             break
+
+def main(args=None):
+
+    rclpy.init(args=args)
+
+    
+    #--- move command by joint angle ---#
+    # script = 'PTP(\"JPP\",45,0,90,0,90,0,35,200,0,false)'
+
+    #--- move command by end effector's pose (x,y,z,a,b,c) ---#
+    # targetP1 = "398.97, -122.27, 748.26, -179.62, 0.25, 90.12"s
+
+    # Initial camera position for taking image (Please do not change the values)
+    # For right arm: targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
+    # For left  arm: targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
+    # set_io(0.0)
+
+    targetP1 = "350, 350, 730, -180.00, 0.0, 135.00"
+    script1 = "PTP(\"CPP\","+targetP1+",100,200,0,false)"
+    send_script(script1)
+
+    send_script("Vision_DoJob(job1)")
+
+    set_io(0.0)
+
+    loop()
 
     rclpy.shutdown()
 
