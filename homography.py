@@ -57,8 +57,8 @@ corners = np.array([
 
 
 def main():
-    x_p = 437.5
-    y_p = 412.5
+    y_p = 437.5
+    x_p = 412.5
     objp = np.zeros((6 * 8, 1, 2), np.float32)
     idx = 0
     for x in range(0, 6):

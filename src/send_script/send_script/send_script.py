@@ -69,24 +69,29 @@ def loop():
                 x, y = shapes.img2world((cx, cy))
                 angle = (135 - 90 - m.degrees(phi)) % 360
 
-                frame = f"{x:.0f}, {y:.0f}, 200, -180.00, 0.0, {angle:.2f}"
+                frame = f"{x:.1f}, {y:.1f}, 150, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
 
                 send_script(script_ptp)
 
                 set_io(0.0)
 
-                frame = f"{x:.0f}, {y:.0f}, 100, -180.00, 0.0, {angle:.2f}"
+                frame = f"{x:.1f}, {y:.1f}, 100, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
 
                 send_script(script_ptp)
 
                 set_io(1.0)
 
+                frame = f"{x:.1f}, {y:.1f}, 200, -180.00, 0.0, {angle:.2f}"
+                script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+
+                send_script(script_ptp)
+
                 target = f"350, 350, {target_z:.0f}, -180.00, 0.0, 135"
                 target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
 
-                target_z += 50
+                target_z += 30
 
                 send_script(target_ptp)
                 set_io(0.0)
@@ -96,7 +101,7 @@ def loop():
 
                 send_script(target_ptp)
 
-        elif time.time() - start > 1000:
+        elif time.time() - start > 120:
             break
 
 def main(args=None):

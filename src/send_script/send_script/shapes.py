@@ -18,9 +18,9 @@ Frame2D = Tuple[float, float, float]    # (x, y, phi)
 Frame3D = Tuple
 
 trans = np.array([
-    [ 4.24874063e-01, -5.50007867e-01,  4.46992509e+02],
-    [ 2.05625446e-02, -6.19755392e-02,  3.74770116e+02],
-    [-1.19834231e-05, -5.16036507e-06,  1.00000000e+00],
+    [ 3.73555436e-01, -3.76758014e-01,  3.65298342e+02],
+    [-3.74641915e-01, -3.76906441e-01,  8.38436436e+02],
+    [-6.48402287e-07, -6.37826214e-06,  1.00000000e+00]
 ])
 
 arm_position = (350, 350, 730)
@@ -39,7 +39,10 @@ T = np.concatenate(
 def img2world(image_point: Point2D) -> Point2D:
     x, y = image_point
     new_point = trans @ np.array([x, y, 1]).T
-    return new_point[:2]
+    x_w, y_w = new_point[:2]
+    x_error = (400 - x_w) * 0.05
+    y_error = (400 - y_w) * 0.05
+    return x_w + x_error , y_w + y_error
 
 
 # TODO: Maybe, we can split the modules as detector and controller.
