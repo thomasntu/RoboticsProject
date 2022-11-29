@@ -77,7 +77,6 @@ def detect(img: np.ndarray) -> List[Frame2D]:
     Return the coordinate of central points (pixel) and principle angle (radian) in image frame.
     """
 
-    img = cv2.undistort(img, intrinsic, distortion, None, None)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     _, thresh = cv2.threshold(blurred, 128, 255, cv2.THRESH_BINARY)
@@ -101,7 +100,7 @@ def detect(img: np.ndarray) -> List[Frame2D]:
         phi = atan2(2 * moment["mu11"], (moment["mu20"] - moment["mu02"])) / 2
         objects.append((cX, cY, phi))
 
-    return objects, (gray, thresh, contours)
+    return objects
 
 # Function for debugging.
 # To learn how the coordinate in 3D space maps to 2D space.
@@ -116,7 +115,7 @@ def camera2img(points: Point3D) -> np.ndarray:
     return p
 
 # Inverse function of camera2img
-def img2Camera(image_point: Point2D) -> np.ndarray:
+def img2camera(image_point: Point2D) -> np.ndarray:
     """Implements perspective transformation. (page 58, Lecture 6)
     """
     # FIXME:
@@ -128,11 +127,10 @@ def img2Camera(image_point: Point2D) -> np.ndarray:
     point_img = np.array([x, y, z / -(f - z), 1])
     T = np.diag([1, 1, f, f / -(f - z)])
     point_camera = (T @ point_img)
-    # print(point_camera)
     point_camera /= point_camera[-1]
     point_camera = point_camera[:-1]
 
-    return point_camera
+    return point_camera[:2]
 
     # x_cam = ((x / f_x) * z) - (x_0 * z)
     # y_cam = ((y / f_y) * z) - (y_0 * z)
@@ -162,7 +160,7 @@ if __name__ == "__main__":
         # Magic that idkw:
         #  - shift (cx, cy) before rotating and translating from image frame to camera frame. .
         #  - Either +85 or -85 (camera offset in camera frame)
-        x, y, z = img2Camera((cx - 640, cy - 480)).tolist()
+        x, y, z = img2camera((cx - 640, cy - 480)).tolist()
         x, y, z, _ = T @ np.array([x, y + 85, z, 1])
 
         # Plot the centroid points and principle axis

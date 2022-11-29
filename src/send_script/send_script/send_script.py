@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import time
+from typing import List
 import rclpy
 
 import sys
@@ -8,6 +10,11 @@ from tm_msgs.msg import *
 from tm_msgs.srv import *
 
 import cv2
+from . import shapes
+import numpy as np
+import math as m
+from os.path import exists
+from os import remove
 
 # arm client
 def send_script(script):
@@ -55,11 +62,67 @@ def main(args=None):
     # For left  arm: targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
     # set_io(0.0)
 
-    targetP1 = "350.00, 350, 500, -180.00, 0.0, 135.00"
+    targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
     script1 = "PTP(\"CPP\","+targetP1+",100,200,0,false)"
     send_script(script1)
 
     send_script("Vision_DoJob(job1)")
+
+    start = time.time()
+
+    while True:
+
+        filename = f'images/IMG.png'
+
+        if exists(filename):
+            time.sleep(1)
+            image = cv2.imread(filename)
+
+            remove(filename)
+
+            objs: List = shapes.detect(image)
+            print(f"OBJECTS:{str(objs)}")
+
+            target_z = 100
+
+            # TODO: Tune robot arm orientation (rz)
+            for object in objs[:1]:
+                cx, cy, phi = object
+                x, y = shapes.img2camera((cx - 640, cy - 480))
+
+                x, y, _, _ = shapes.T @ np.array([x, y + 85, 0, 1])
+                angle = (135 - 90 - m.degrees(phi)) % 360
+
+
+                frame = f"{x:.0f}, {y:.0f}, 200, -180.00, 0.0, {angle:.2f}"
+                script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+
+                send_script(script_ptp)
+
+                set_io(0.0)
+
+                frame = f"{x:.0f}, {y:.0f}, 100, -180.00, 0.0, {angle:.2f}"
+                script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+
+                send_script(script_ptp)
+
+                set_io(1.0)
+
+                # target = f"350, 350, {target_z:.0f}, -180.00, 0.0, 135"
+                # target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
+
+                # target_z += 50
+
+                # send_script(target_ptp)
+                # set_io(0.0)
+
+                # target = f"350, 350, {target_z + 100:.0f}, -180.00, 0.0, 135"
+                # target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
+
+                # send_script(target_ptp)
+
+        elif time.time() - start > 1000:
+            break
 
     rclpy.shutdown()
 
