@@ -1,2 +1,7 @@
-*/
-!src/send_script/send_script/
+build/
+install/
+log/
+src/*
+!src/send_script
+src/send_script/*
+!src/send_script/send_script
