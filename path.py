@@ -1,16 +1,9 @@
 import math
+from typing import List, Tuple
 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
-# Draw the points
-abcisas = []  # X
-ordenadas = []  # Y
-distances = []
-abcisasaux = []  # X
-ordenadasaux = []  # Y
-distancesaux = []
 
 
 def edge_detection_canny(cv_image):
@@ -42,12 +35,16 @@ def path_planning_creation(cv_image):
                 dist = float('inf')
                 points.append(Point(nx, ny, nv, dist))
 
-    path_planning_with_greedy_colours(points)
-    cv2.imshow('Final Result', cv_image)
-    # cv2.waitKey(0)
+    res = path_planning_with_greedy_colours(points)
+    return res
 
 
 def path_planning_with_greedy_colours(_points):
+    abcisas = []  # X drawn
+    ordenadas = []  # Y drawn
+
+    abcisasaux = []  # X move
+    ordenadasaux = []  # Y move
     # Starts looking for the closest neighbour(CN)
     fp = _points[0]
     fcn = fp.cn(_points)
@@ -60,14 +57,10 @@ def path_planning_with_greedy_colours(_points):
         if fp.dist > 4:
             abcisasaux.append(fp.x)
             ordenadasaux.append(fp.y)
-            distancesaux.append(fp.dist)
         abcisas.append(fp.x)
         ordenadas.append(fp.y)
-        distances.append(fp.dist)
 
-    plt.plot(abcisas, ordenadas, color='blue')  # Plot the graph of points
-    plt.plot(abcisasaux, ordenadasaux, color='red')  # Plot the graph of point
-    plt.show()
+    return (abcisas, ordenadas), (abcisasaux, ordenadasaux)
 
 
 # Definition of classes
@@ -101,24 +94,23 @@ class Point:  # Point definition
         return p
 
 
+def get_path(cv2image) -> Tuple[Tuple[List[float], List[float]], Tuple[List[float], List[float]]]:
+    """
+    returns x and y coordinates of points + x and y coordinates of movements
+    """
+    print("Detecting Corners with Edge_Detection_Canny...")
+    corners_detected = edge_detection_canny(cv2image)
+    print("Creating Path_Planning ...")
+    return path_planning_creation(corners_detected)
+
+
 def main():
     img = cv2.imread("images/robot3.png")
-    print("Detecting Corners with Edge_Detection_Canny...")
-    corners_detected = edge_detection_canny(img)
-    print("Creating Path_Planning ...")
-    path_planning_creation(corners_detected)
-    [rows, cols, length] = np.shape(img)
-    x = abcisas
-    y = ordenadas
-    dist = distances
-    cols = cols
-    rows = rows
+    (x, y), (x_aux, y_aux) = get_path(img)
+    plt.plot(x, y, color='blue')  # Plot the graph of points
+    plt.plot(x_aux, y_aux, color='red')  # Plot the graph of point
+    plt.show()
     print("Process finished correctly...")
-    print(f"X: {x}\n"
-          f"Y: {y}\n"
-          f"DIST: {dist}\n"
-          f"COLS: {cols}\n"
-          f"ROWS: {rows}\n")
 
 
 if __name__ == "__main__":
