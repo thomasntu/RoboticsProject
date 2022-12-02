@@ -4,8 +4,10 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
+from src.send_script.send_script import detector
+
 # Type definition
-Point2D = Tuple[float, float] # (x, y)
+Point2D = Tuple[float, float]  # (x, y)
 Frame2D = Tuple[float, float, float]  # (x, y, phi)
 
 # Homology transformation matrix
@@ -29,6 +31,13 @@ def img2world(image_point: Point2D) -> Point2D:
     y_error = (400 - y_w) * 0.04
     return x_w + x_error, y_w + y_error
 
+def find_contours(img):
+    # Find contours
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
 
 def detect(img: np.ndarray) -> List[Frame2D]:
     """
@@ -36,11 +45,7 @@ def detect(img: np.ndarray) -> List[Frame2D]:
     Return the coordinate of central points (pixel) and principle angle (radian) in image frame.
     """
 
-    # Find contours
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
-    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours = find_contours(img)
 
     # loop over the contours
     objects = []
@@ -61,3 +66,7 @@ def detect(img: np.ndarray) -> List[Frame2D]:
         objects.append((c_x, c_y, phi))
 
     return objects
+
+def calculate_path(cv2image):
+    images = detector.get_sheets(cv2image)
+

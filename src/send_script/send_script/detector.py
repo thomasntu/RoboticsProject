@@ -81,7 +81,7 @@ def find_rect(img: np.ndarray) -> Tuple:
 
     # Finding contours for the detected edges.
     # Implementation: sort contours by area, and select 5 largest contours as candidates
-    _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE) # OpenCV 3
+    _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
     # contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
@@ -103,6 +103,7 @@ def find_corner(contour) -> List[int]:
 
     return corners
 
+
 def resize(img: np.ndarray) -> np.ndarray:
     dim_limit = 1080
 
@@ -113,11 +114,41 @@ def resize(img: np.ndarray) -> np.ndarray:
 
     return img
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
 
     return parser.parse_args()
+
+
+def get_corners(cv2image):
+    # Find candidate contours and calculate corner if it can be approximated to rectangle
+    contours = find_rect(cv2image)
+
+    for c in contours:
+        cv2.drawContours(cv2image, c, -1, (0, 255, 255), 3)
+
+    corners = [find_corner(c) for c in contours]
+    rectangles = filter(lambda x: bool(x), corners)
+    return rectangles
+
+
+def get_sheets(cv2image) -> List[np.array]:
+    rectangles = get_corners(cv2image)
+
+    images = []
+    for rect in rectangles:
+        destination_corners = find_dest(rect)
+
+        # Getting the homography and doing perspective transform.
+        T = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
+        final = cv2.warpPerspective(
+            cv2image, T, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
+        images.append(final)
+
+    return images
+
 
 @pysnooper.snoop()
 def main():
@@ -127,14 +158,7 @@ def main():
     img = cv2.imread(args.input)
     img = resize(img)
 
-    # Find candidate contours and calculate corner if it can be approximated to rectangle
-    contours = find_rect(img)
-
-    for c in contours:
-        cv2.drawContours(img, c, -1, (0, 255, 255), 3)
-
-    corners = [find_corner(c) for c in contours]
-    rectangles = filter(lambda x: bool(x), corners)
+    rectangles = get_corners(img)
 
     # Displaying the contours and corners.
     for rect in rectangles:
@@ -142,18 +166,12 @@ def main():
             cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
             cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
 
-    # destination_corners = find_dest(corners)
-
-    # # Getting the homography and doing perspective transform.
-    # T = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
-    # final = cv2.warpPerspective(
-    #     img, T, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
-
     cv2.imwrite('Image.png', img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
     return
+
 
 if __name__ == "__main__":
     main()
