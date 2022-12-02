@@ -12,7 +12,6 @@ from tm_msgs.srv import *
 
 import cv2
 from . import shapes
-import numpy as np
 import math as m
 from os.path import exists
 from os import remove
@@ -55,54 +54,60 @@ def loop():
 
     while True:
         if exists(filename):
+            # An image was recorded
             time.sleep(1)
             image = cv2.imread(filename)
 
+            # Delete the image after reading
             remove(filename)
 
+            # Detect centroids and principle angles
             objs: List = shapes.detect(image)
             print(f"OBJECTS:{str(objs)}")
 
+            # Target height for stacking
             target_z = 100
 
-            for object in objs:
-                cx, cy, phi = object
+            for _object in objs:
+                cx, cy, phi = _object
+
+                # Translate centroid into world coordinates
                 x, y = shapes.img2world((cx, cy))
+
+                # Add centroid angle to initial camera angle
                 angle = (135 - 90 - m.degrees(phi)) % 360
 
+                # Go to a point 50mm above the object and open the gripper
                 frame = f"{x:.1f}, {y:.1f}, 150, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
-
                 send_script(script_ptp)
-
                 set_io(0.0)
 
+                # Go down to the object and close the gripper
                 frame = f"{x:.1f}, {y:.1f}, 100, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
-
                 send_script(script_ptp)
-
                 set_io(1.0)
 
+                # Go to a point 100mm above the object location
                 frame = f"{x:.1f}, {y:.1f}, 200, -180.00, 0.0, {angle:.2f}"
                 script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
-
                 send_script(script_ptp)
 
+                # Go to the stacking location, update the stack height and open the gripper
                 target = f"350, 350, {target_z:.0f}, -180.00, 0.0, 135"
                 target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
-
                 target_z += 30
-
                 send_script(target_ptp)
                 set_io(0.0)
 
+                # Go to a point 130mm above the stacking location
                 target = f"350, 350, {target_z + 100:.0f}, -180.00, 0.0, 135"
                 target_ptp = "PTP(\"CPP\"," + target + ",100,200,0,false)"
-
                 send_script(target_ptp)
 
         elif time.time() - start > 120:
+            # Exit loop after 2 minutes
             break
 
 
@@ -120,16 +125,17 @@ def main(args=None):
     # For left  arm: targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
     # set_io(0.0)
 
+    # Take a picture
     targetP1 = "350, 350, 730, -180.00, 0.0, 135.00"
     script1 = "PTP(\"CPP\"," + targetP1 + ",100,200,0,false)"
     send_script(script1)
-
     send_script("Vision_DoJob(job1)")
-
     set_io(0.0)
 
+    # Enter into the main loop
     loop()
 
+    # Shutdown
     rclpy.shutdown()
 
 
