@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from datetime import datetime
 import sys
 
 import cv2
@@ -23,10 +22,9 @@ class ImageSub(Node):
     def image_callback(self, data):
         self.get_logger().info('Received image')
 
+        # Write the image to the images folder
         img = np.array(data.data).reshape(data.height, data.width, 3)
         cv2.imwrite(f'images/IMG.png', img)
-        # cv2.imwrite(f'checkers/checker-{datetime.now()}.png', img)
-
 
 
 def send_script(script):
