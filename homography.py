@@ -4,6 +4,7 @@ import glob
 import cv2 as cv
 import numpy as np
 
+# We lost the original picture of the checkerboard, but these are the coordinates of the detected corners
 _corners = np.array([
     [[599.0467, 472.47952]],
     [[632.2732, 505.668]],
@@ -57,8 +58,11 @@ _corners = np.array([
 
 
 def main():
+    # Real world coordinates of the first corner
     y_p = 437.5
     x_p = 412.5
+
+    # Construct the real world coordinates of all other corners
     objp = np.zeros((6 * 8, 1, 2), np.float32)
     idx = 0
     for x in range(0, 6):
@@ -67,13 +71,11 @@ def main():
             objp[idx][0][1] = y_p - y * 25
             idx += 1
 
-    # Save an image with found corners for the first image
-    draw_corners = True
     # Find corners for all distorted images
     file_name = "images/IMG.png"
     # Find corners
-    _, imgp = find_image_points(file_name, draw_image_points=draw_corners)
-    # imgp = _corners
+    # _, imgp = find_image_points(file_name)
+    imgp = _corners
 
     print(imgp)
     print(objp)
