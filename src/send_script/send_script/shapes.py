@@ -40,8 +40,8 @@ def img2world(image_point: Point2D) -> Point2D:
     x, y = image_point
     new_point = trans @ np.array([x, y, 1]).T
     x_w, y_w = new_point[:2]
-    x_error = (400 - x_w) * 0.05
-    y_error = (400 - y_w) * 0.05
+    x_error = (400 - x_w) * 0.04
+    y_error = (400 - y_w) * 0.04
     return x_w + x_error , y_w + y_error
 
 
