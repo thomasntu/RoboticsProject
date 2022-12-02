@@ -5,6 +5,7 @@ from typing import List
 import rclpy
 
 import sys
+
 sys.path.append('/home/robot/colcon_ws/install/tm_msgs/lib/python3.6/site-packages')
 from tm_msgs.msg import *
 from tm_msgs.srv import *
@@ -15,6 +16,7 @@ import numpy as np
 import math as m
 from os.path import exists
 from os import remove
+
 
 # arm client
 def send_script(script):
@@ -29,6 +31,7 @@ def send_script(script):
     arm_cli.call_async(move_cmd)
     arm_node.destroy_node()
 
+
 # gripper client
 def set_io(state):
     gripper_node = rclpy.create_node('gripper')
@@ -36,7 +39,7 @@ def set_io(state):
 
     while not gripper_cli.wait_for_service(timeout_sec=1.0):
         node.get_logger().info('service not availabe, waiting again...')
-    
+
     io_cmd = SetIO.Request()
     io_cmd.module = 1
     io_cmd.type = 1
@@ -45,13 +48,12 @@ def set_io(state):
     gripper_cli.call_async(io_cmd)
     gripper_node.destroy_node()
 
+
 def loop():
     start = time.time()
+    filename = f'images/IMG.png'
 
     while True:
-
-        filename = f'images/IMG.png'
-
         if exists(filename):
             time.sleep(1)
             image = cv2.imread(filename)
@@ -63,7 +65,6 @@ def loop():
 
             target_z = 100
 
-            # TODO: Tune robot arm orientation (rz)
             for object in objs:
                 cx, cy, phi = object
                 x, y = shapes.img2world((cx, cy))
@@ -104,15 +105,14 @@ def loop():
         elif time.time() - start > 120:
             break
 
-def main(args=None):
 
+def main(args=None):
     rclpy.init(args=args)
 
-    
-    #--- move command by joint angle ---#
+    # --- move command by joint angle ---#
     # script = 'PTP(\"JPP\",45,0,90,0,90,0,35,200,0,false)'
 
-    #--- move command by end effector's pose (x,y,z,a,b,c) ---#
+    # --- move command by end effector's pose (x,y,z,a,b,c) ---#
     # targetP1 = "398.97, -122.27, 748.26, -179.62, 0.25, 90.12"s
 
     # Initial camera position for taking image (Please do not change the values)
@@ -121,7 +121,7 @@ def main(args=None):
     # set_io(0.0)
 
     targetP1 = "350, 350, 730, -180.00, 0.0, 135.00"
-    script1 = "PTP(\"CPP\","+targetP1+",100,200,0,false)"
+    script1 = "PTP(\"CPP\"," + targetP1 + ",100,200,0,false)"
     send_script(script1)
 
     send_script("Vision_DoJob(job1)")
@@ -132,9 +132,6 @@ def main(args=None):
 
     rclpy.shutdown()
 
+
 if __name__ == '__main__':
     main()
-    
-
-
-    
