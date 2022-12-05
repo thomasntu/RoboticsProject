@@ -17,6 +17,12 @@ class Point:  # Point definition
     def __str__(self):  # Print the points
         return f'x: {self.x:.2f}, y: {self.y:.2f}'
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.dist == other.dist
+
+    def __hash__(self):
+        return hash(f"{self.x}{self.y}{self.dist}")
+
     def clone(self):
         return Point(self.x, self.y, self.dist)
 
@@ -49,7 +55,6 @@ def edge_detection_canny(cv_image):
     get_edge = cv2.Canny(blurred, 10, 100)
     cv_image = np.hstack([get_edge])
     cv2.imshow('Corners_Extracted', cv_image)
-    # cv2.waitKey(0)
 
     return cv_image
 
@@ -60,8 +65,9 @@ def path_planning_creation(cv_image) -> Tuple[List[Point], List[Point]]:
     print(f"The cols: {cols}")
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points = []
-    for i in range(rows - 1):
-        for j in range(cols - 1):
+    border = 10
+    for i in range(border, rows - 1 - border):
+        for j in range(border, cols - 1 - border):
             if cv_image[i, j] == 255:
                 nx = j
                 ny = i
@@ -77,19 +83,24 @@ def path_planning_with_greedy_colours(_points) -> Tuple[List[Point], List[Point]
     path = []
     # Starts looking for the closest neighbour(CN)
     fp = _points[0]
-    fcn = fp.cn(_points)
-    for k in range(len(_points)):  # Looks for the CN of each point
-        fp.x = float('inf')  # Turns the points to infinity to not taking later
-        fp.y = float('inf')
-        fp = fcn  # Take the CN as the starting point
+    while True:
         fcn = fp.cn(_points)  # Calculate the CN
 
-        clone = fp.clone()
+        if fcn.x == float('inf'):
+            assert fcn.y == float('inf')
+            break
 
-        if fp.dist > 4:
+        clone = fcn.clone()
+
+        if fcn.dist > 4:
+            jumps.append(fp.clone())
             jumps.append(clone)
 
         path.append(clone)
+
+        fp.x = float('inf')  # Turns the points to infinity to not taking later
+        fp.y = float('inf')
+        fp = fcn
 
     return path, jumps
 
@@ -108,7 +119,8 @@ def straighten_lines(path, jumps):
         prev_point = prev_points[0]
         new_angle = round(math.atan2(prev_point.y - point.y, prev_point.x - point.x), 2)
 
-        if prev_point in jumps or old_angle != new_angle:
+        jump = prev_point in jumps
+        if jump or old_angle != new_angle:
             corners.append(prev_point)
 
         prev_points.append(point)
@@ -116,9 +128,33 @@ def straighten_lines(path, jumps):
 
         old_angle = new_angle
 
-    corners.append(point)
+    corners.extend(prev_points[-step:])
+
+    jump_diff = set(jumps) - set(corners)
+    print(jump_diff)
 
     return corners
+
+
+def detect_line(cv2_image):
+    lines = cv2.HoughLines(cv2_image, rho=1, theta=math.pi / 180, threshold=70)
+    color_image = cv2.cvtColor(cv2_image, cv2.COLOR_GRAY2BGR)
+    for line in lines:
+        rho = line[0][0]
+        theta = line[0][1]
+        a = math.cos(theta)
+        b = math.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+
+        point1 = (round(x0 + 1000 * (-b)), round(y0 + 1000 * a))
+        point2 = (round(x0 - 1000 * (-b)), round(y0 - 1000 * a))
+
+        cv2.line(img=color_image, pt1=point1, pt2=point2, color=(0, 255, 0), thickness=2)
+
+    cv2.imshow("lines", color_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def get_path(cv2image) -> Tuple[List[Point], List[Point]]:
@@ -127,6 +163,7 @@ def get_path(cv2image) -> Tuple[List[Point], List[Point]]:
     """
     print("Detecting Corners with Edge_Detection_Canny...")
     corners_detected = edge_detection_canny(cv2image)
+    # detect_line(corners_detected)
     print("Creating Path_Planning ...")
     path, jumps = path_planning_creation(corners_detected)
     path = straighten_lines(path, jumps)
@@ -135,12 +172,11 @@ def get_path(cv2image) -> Tuple[List[Point], List[Point]]:
 
 # Debugging function
 def resize(img: np.ndarray) -> np.ndarray:
-    dim_limit = 360
+    dim_limit = 720
 
     max_dim = max(img.shape)
-    if max_dim > dim_limit:
-        resize_scale = dim_limit / max_dim
-        img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
+    resize_scale = dim_limit / max_dim
+    img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
 
     return img
 
@@ -162,7 +198,24 @@ def main():
 
     plt.plot(x, y, color='blue')  # Plot the graph of points
     plt.scatter(x, y, color='yellow')  # Plot the graph of points
-    plt.plot(x_jumps, y_jumps, color='red')  # Plot the graph of point
+
+    plt.plot(x_jumps, y_jumps, color='orange')  # Plot the graph of point
+
+    draw_start = (x[0], y[0])
+    draw_end = (x[-1], y[-1])
+
+    jump_start = (x_jumps[0], y_jumps[0])
+    jump_end = (x_jumps[-1], y_jumps[-1])
+
+    plt.plot(draw_start[0], draw_start[1], color="green", marker="x")
+    plt.plot(draw_end[0], draw_end[1], color="red", marker="x")
+    plt.plot(jump_start[0], jump_start[1], color="green", marker="+")
+    plt.plot(jump_end[0], jump_end[1], color="red", marker="+")
+
+    print(draw_start)
+    print(draw_end)
+    print(jump_start)
+    print(jump_end)
 
     print("DONE!")
 
