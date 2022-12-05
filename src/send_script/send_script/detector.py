@@ -4,7 +4,7 @@
 import argparse
 import random
 # import pysnooper
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -61,8 +61,7 @@ def find_dest(pts):
 
 
 def find_contours(img: np.ndarray) -> List:
-    """
-    Find contours with simple content.
+    """Find contours with simple content.
     """
     # Repeated closing operation to remove text from the document.
     kernel = np.ones((5, 5), np.uint8)
@@ -84,9 +83,12 @@ def find_contours(img: np.ndarray) -> List:
     canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
     # Finding contours for the detected edges.
-    # Implementation: sort contours with area in descending order
-    # _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
-    contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 4
+    # Implementation:
+    # - RETR_EXTERNAL: Keep the external contours and discard all internal contours
+    # - sort contours with area in descending order
+
+    # _, contours, _ = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
+    contours, _ = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # OpenCV 4
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     return contours  # only return outer contours
@@ -96,6 +98,7 @@ def find_contours(img: np.ndarray) -> List:
 def find_contour_with_n_corner(contour, n=4) -> Optional[List[int]]:
     """Approximate contour with `n` corners.
     """
+    # Don't forget another method cv2.convexHull() and cv2.minAreaRect()
     epsilon = 0.02 * cv2.arcLength(contour, True)
     corners = cv2.approxPolyDP(contour, epsilon, True)
 
@@ -127,17 +130,14 @@ def line_intersection(line1, line2):
 
     return x, y
 
+
 def find_templates_and_canvas(img, ):
     pass
 
-def get_sheets(cv2image: np.ndarray, draw_contours=False) -> List[np.ndarray]:
+
+def get_sheets(cv2image: np.ndarray, draw_contours=False) -> List[Tuple[float, np.ndarray]]:
     # Find candidate contours and calculate corner if it can be approximated to rectangle
     contours = find_contours(cv2image)
-
-    if draw_contours:
-        for c in contours:
-            cv2.drawContours(cv2image, c, -1,
-                             (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)), 3)
 
     rectangles = []
     for contour in contours:
@@ -145,17 +145,33 @@ def get_sheets(cv2image: np.ndarray, draw_contours=False) -> List[np.ndarray]:
         if corner is not None:
             rectangles.append(corner)
 
+    margin = 16
+
+    # Classify if it is pattern or canvas
     images = []
-    for rect in rectangles:
+    for idx, rect in enumerate(rectangles):
         destination_corners = find_dest(rect)
-        size = destination_corners[2]
+        w, h = destination_corners[2]
 
         # Getting the homography and doing perspective transform.
         transformation = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
-        warpped = cv2.warpPerspective(cv2image, transformation, size, flags=cv2.INTER_LINEAR)
-        images.append(warpped)
+        sheet = cv2.warpPerspective(cv2image, transformation, (w, h), flags=cv2.INTER_LINEAR)
+        sheet = sheet[margin:h-margin, margin:w-margin]
 
-    return images
+        # Find canvas if it has no edges on it
+        edge = cv2.cvtColor(sheet, cv2.COLOR_BGR2GRAY)
+        edge = cv2.Canny(edge, 0, 200)
+        count = np.bincount(edge.flatten())
+        ratio = count[0] / (w * h)
+
+        images.append((ratio, rect, sheet))
+
+    def get_ratio(x):
+        return x[0]
+
+    images = sorted(images, key=get_ratio, reverse=True)
+    return [(rect, img) for _, rect, img in images]
+
 
 # Debugging function
 def resize(img: np.ndarray) -> np.ndarray:
@@ -183,11 +199,20 @@ def main():
 
     # I/O and resize image if it's pretty large for GrabCut
     img = cv2.imread(args.input)
+    assert img is not None
     img = resize(img)
 
     sheets = get_sheets(img)
-    for idx, sheet in enumerate(sheets):
-        cv2.imshow(f"sheet{idx}", sheet)
+    assert len(sheets) == 2
+
+    canvas_corners = sheets[0][0]
+    pattern_img = sheets[1][1]
+
+    for c in canvas_corners:
+        cv2.circle(img, c, 5, (255, 0, 0), -1)
+
+    cv2.imshow("scene", img)
+    cv2.imshow("pattern", pattern_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
