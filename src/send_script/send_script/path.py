@@ -136,20 +136,13 @@ def straighten_lines(path, jumps):
     return corners
 
 
-def detect_line(cv2_image):
-    lines = cv2.HoughLines(cv2_image, rho=1, theta=math.pi / 180, threshold=70)
+def detect_lines(cv2_image):
+    lines = cv2.HoughLinesP(cv2_image, rho=1, theta=np.pi / 360, threshold=10, minLineLength=10, maxLineGap=1)
     color_image = cv2.cvtColor(cv2_image, cv2.COLOR_GRAY2BGR)
     for line in lines:
-        rho = line[0][0]
-        theta = line[0][1]
-        a = math.cos(theta)
-        b = math.sin(theta)
-        x0 = a * rho
-        y0 = b * rho
-
-        point1 = (round(x0 + 1000 * (-b)), round(y0 + 1000 * a))
-        point2 = (round(x0 - 1000 * (-b)), round(y0 - 1000 * a))
-
+        line = line[0]
+        point1 = (line[0], line[1])
+        point2 = (line[2], line[3])
         cv2.line(img=color_image, pt1=point1, pt2=point2, color=(0, 255, 0), thickness=2)
 
     cv2.imshow("lines", color_image)
