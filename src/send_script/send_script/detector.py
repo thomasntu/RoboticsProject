@@ -41,6 +41,8 @@ def order_points(pts) -> List[int]:
 
 # @pysnooper.snoop()
 def find_dest(pts):
+    """ Used by cv2.warpPerspective(), to perserve the aspect ratio of target.
+    """
     (tl, tr, br, bl) = pts
     # Finding the maximum width.
     width_a = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
@@ -58,7 +60,7 @@ def find_dest(pts):
     return order_points(destination_corners)
 
 
-def find_rect(img: np.ndarray) -> List:
+def find_contours(img: np.ndarray) -> List:
     """
     Find contours with simple content.
     """
@@ -82,19 +84,22 @@ def find_rect(img: np.ndarray) -> List:
     canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
     # Finding contours for the detected edges.
-    # Implementation: sort contours by area, and select 5 largest contours as candidates
-    _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
+    # Implementation: sort contours with area in descending order
+    # _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
+    contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 4
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    return contours[:2]  # only return outer contours
+    return contours  # only return outer contours
 
 
 # @pysnooper.snoop()
-def find_corner(contour) -> Optional[List[int]]:
+def find_contour_with_n_corner(contour, n=4) -> Optional[List[int]]:
+    """Approximate contour with `n` corners.
+    """
     epsilon = 0.02 * cv2.arcLength(contour, True)
     corners = cv2.approxPolyDP(contour, epsilon, True)
 
-    if len(corners) != 4:
+    if len(corners) != n:
         return None
 
     # Sorting the corners and converting array to desired shape.
@@ -122,11 +127,35 @@ def line_intersection(line1, line2):
 
     return x, y
 
-
 def find_templates_and_canvas(img, ):
-    # TODO
     pass
 
+def get_sheets(cv2image: np.ndarray, draw_contours=False) -> List[np.ndarray]:
+    # Find candidate contours and calculate corner if it can be approximated to rectangle
+    contours = find_contours(cv2image)
+
+    if draw_contours:
+        for c in contours:
+            cv2.drawContours(cv2image, c, -1,
+                             (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)), 3)
+
+    rectangles = []
+    for contour in contours:
+        corner = find_contour_with_n_corner(contour, n=4)
+        if corner is not None:
+            rectangles.append(corner)
+
+    images = []
+    for rect in rectangles:
+        destination_corners = find_dest(rect)
+        size = destination_corners[2]
+
+        # Getting the homography and doing perspective transform.
+        transformation = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
+        warpped = cv2.warpPerspective(cv2image, transformation, size, flags=cv2.INTER_LINEAR)
+        images.append(warpped)
+
+    return images
 
 # Debugging function
 def resize(img: np.ndarray) -> np.ndarray:
@@ -140,34 +169,12 @@ def resize(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def get_rectangles(cv2image, draw_contours=False):
-    # Find candidate contours and calculate corner if it can be approximated to rectangle
-    contours = find_rect(cv2image)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Document detector")
+    parser.add_argument('-i', '--input', help="Path to image")
+    parser.add_argument('-o', '--output', help="split or marked", default="marked")
 
-    if draw_contours:
-        for c in contours:
-            cv2.drawContours(cv2image, c, -1,
-                             (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)), 3)
-
-    corners = [find_corner(c) for c in contours]
-    rectangles = list(filter(lambda x: bool(x), corners))
-    return rectangles
-
-
-def get_sheets(cv2image) -> List[np.array]:
-    rectangles = get_rectangles(cv2image)
-
-    images = []
-    for rect in rectangles:
-        destination_corners = find_dest(rect)
-
-        # Getting the homography and doing perspective transform.
-        transformation = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
-        final = cv2.warpPerspective(
-            cv2image, transformation, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
-        images.append(final)
-
-    return images
+    return parser.parse_args()
 
 
 # @pysnooper.snoop()
@@ -178,41 +185,14 @@ def main():
     img = cv2.imread(args.input)
     img = resize(img)
 
-    if args.output == "marked":
-
-        rectangles = get_rectangles(img, draw_contours=True)
-
-        # Displaying the contours and corners.
-        for rect in rectangles:
-            for char, corner in enumerate(rect, ord('A')):
-                cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
-                cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
-
-        print("DONE!")
-
-        cv2.imshow("marked", img)
-
-    elif args.output == "split":
-        sheets = get_sheets(img)
-
-        print("DONE!")
-
-        for idx, sheet in enumerate(sheets):
-            cv2.imshow(f"sheet{idx}", sheet)
+    sheets = get_sheets(img)
+    for idx, sheet in enumerate(sheets):
+        cv2.imshow(f"sheet{idx}", sheet)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Document detector")
-    parser.add_argument('-i', '--input', help="Path to image")
-    parser.add_argument('-o', '--output', help="split or marked", default="marked")
-
-    return parser.parse_args()
-
 
 if __name__ == "__main__":
     main()
