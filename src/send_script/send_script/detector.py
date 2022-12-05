@@ -140,14 +140,6 @@ def resize(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Document detector")
-    parser.add_argument('-i', '--input', help="Path to image")
-    parser.add_argument('-o', '--output', help="split or marked", default="marked")
-
-    return parser.parse_args()
-
-
 def get_rectangles(cv2image, draw_contours=False):
     # Find candidate contours and calculate corner if it can be approximated to rectangle
     contours = find_rect(cv2image)
@@ -212,6 +204,14 @@ def main():
     cv2.destroyAllWindows()
 
     return
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Document detector")
+    parser.add_argument('-i', '--input', help="Path to image")
+    parser.add_argument('-o', '--output', help="split or marked", default="marked")
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
