@@ -31,6 +31,7 @@ def img2world(image_point: Point2D) -> Point2D:
     y_error = (400 - y_w) * 0.04
     return x_w + x_error, y_w + y_error
 
+
 def find_contours(img):
     # Find contours
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -38,6 +39,7 @@ def find_contours(img):
     _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
     _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours
+
 
 def detect(img: np.ndarray) -> List[Frame2D]:
     """
@@ -67,6 +69,6 @@ def detect(img: np.ndarray) -> List[Frame2D]:
 
     return objects
 
+
 def calculate_path(cv2image):
     images = detector.get_sheets(cv2image)
-

@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 
+import math as m
 import time
+from os import remove
+from os.path import exists
 from typing import List
+
+import cv2
+import numpy as np
 import rclpy
 
-from time import sleep
-import cv2
 from . import detector, shapes
 from .controller import send_script, set_io
-import numpy as np
-import math as m
-from os.path import exists
-from os import remove
+
 
 def alpha_blend(a, b, alpha):
     return (np.array(a) * alpha + np.array(b) * (1 - alpha)).tolist()
 
 
 def loop():
+    """
+    Stack blocks
+    """
     start = time.time()
     filename = f'images/IMG.png'
 
@@ -82,12 +86,13 @@ def loop():
 
 
 def loop2():
+    """
+    Copy image
+    """
     start = time.time()
+    filename = f'images/IMG.png'
 
     while True:
-
-        filename = f'images/IMG.png'
-
         if exists(filename):
             time.sleep(1)
 
@@ -166,13 +171,13 @@ def main(args=None):
     # set_io(0.0)
 
     # Take a picture
-    targetP1 = "350, 350, 730, -180.00, 0.0, 135.00"
-    script1 = "PTP(\"CPP\"," + targetP1 + ",100,200,0,false)"
+    target_p1 = "350, 350, 730, -180.00, 0.0, 135.00"
+    script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
     send_script(script1)
     send_script("Vision_DoJob(job1)")
 
     # Enter into the main loop
-    loop()
+    loop2()
 
     # Shutdown
     rclpy.shutdown()

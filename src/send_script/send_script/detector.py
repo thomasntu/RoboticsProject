@@ -2,10 +2,11 @@
 # https://learnopencv.com/automatic-document-scanner-using-opencv/
 
 import argparse
+# import pysnooper
+from typing import List, Optional, Tuple
+
 import cv2
 import numpy as np
-# import pysnooper
-from typing import List, Tuple, Optional
 
 
 def order_points(pts) -> List[int]:
@@ -41,17 +42,17 @@ def order_points(pts) -> List[int]:
 def find_dest(pts):
     (tl, tr, br, bl) = pts
     # Finding the maximum width.
-    widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
-    widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
-    maxWidth = max(int(widthA), int(widthB))
+    width_a = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
+    width_b = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
+    max_width = max(int(width_a), int(width_b))
 
     # Finding the maximum height.
-    heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
-    heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
-    maxHeight = max(int(heightA), int(heightB))
+    height_a = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
+    height_b = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
+    max_height = max(int(height_a), int(height_b))
 
     # Final destination co-ordinates.
-    destination_corners = [[0, 0], [maxWidth, 0], [maxWidth, maxHeight], [0, maxHeight]]
+    destination_corners = [[0, 0], [max_width, 0], [max_width, max_height], [0, max_height]]
 
     return order_points(destination_corners)
 
@@ -66,10 +67,10 @@ def find_rect(img: np.ndarray) -> Tuple:
 
     # GrabCut: Remove background (Time consuming)
     mask = np.zeros(img.shape[:2], np.uint8)
-    bgdModel = np.zeros((1, 65), np.float64)
-    fgdModel = np.zeros((1, 65), np.float64)
+    bgd_model = np.zeros((1, 65), np.float64)
+    fgd_model = np.zeros((1, 65), np.float64)
     roi = (20, 20, img.shape[1] - 20, img.shape[0] - 20)
-    cv2.grabCut(img, mask, roi, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+    cv2.grabCut(img, mask, roi, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
     mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
     img = img * mask2[:, :, np.newaxis]
 
@@ -89,7 +90,7 @@ def find_rect(img: np.ndarray) -> Tuple:
 
 
 # @pysnooper.snoop()
-def find_corner(contour) -> List[int]:
+def find_corner(contour) -> Optional[List[int]]:
     epsilon = 0.02 * cv2.arcLength(contour, True)
     corners = cv2.approxPolyDP(contour, epsilon, True)
 
@@ -113,7 +114,7 @@ def line_intersection(line1, line2):
 
     div = det(xdiff, ydiff)
     if div == 0:
-       raise Exception('lines do not intersect')
+        raise Exception('lines do not intersect')
 
     d = (det(*line1), det(*line2))
     x = det(d, xdiff) / div
@@ -123,7 +124,8 @@ def line_intersection(line1, line2):
 
 
 def find_templates_and_canvas(img, ):
-    return
+    # TODO
+    pass
 
 
 # Debugging function
@@ -165,9 +167,9 @@ def get_sheets(cv2image) -> List[np.array]:
         destination_corners = find_dest(rect)
 
         # Getting the homography and doing perspective transform.
-        T = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
+        transformation = cv2.getPerspectiveTransform(np.float32(rect), np.float32(destination_corners))
         final = cv2.warpPerspective(
-            cv2image, T, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
+            cv2image, transformation, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
         images.append(final)
 
     return images
@@ -189,16 +191,9 @@ def main():
             cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
             cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
 
-    # destination_corners = find_dest(corners)
-
-    # # Getting the homography and doing perspective transform.
-    # T = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
-    # final = cv2.warpPerspective(
-    #     img, T, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
-
-    # cv2.imwrite('Image.png', img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imwrite('Image.png', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     return
 

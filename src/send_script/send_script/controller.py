@@ -1,9 +1,11 @@
+import sys
+
 import rclpy
 
-import sys
 sys.path.append('/home/robot/colcon_ws/install/tm_msgs/lib/python3.6/site-packages')
 from tm_msgs.msg import *
 from tm_msgs.srv import *
+
 
 # arm client
 def send_script(script):
@@ -17,6 +19,7 @@ def send_script(script):
     move_cmd.script = script
     arm_cli.call_async(move_cmd)
     arm_node.destroy_node()
+
 
 # gripper client
 def set_io(state):

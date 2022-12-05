@@ -35,7 +35,8 @@ def main(_args: argparse.Namespace):
     shape = cv.imread(file_names[0]).shape
     _, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv.calibrateCamera(object_points,
                                                                                                           image_points,
-                                                                                                          shape[-2:-4:-1],
+                                                                                                          shape[
+                                                                                                          -2:-4:-1],
                                                                                                           None,
                                                                                                           None)
 
