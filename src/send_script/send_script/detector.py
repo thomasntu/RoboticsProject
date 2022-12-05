@@ -191,17 +191,14 @@ def main():
         print("DONE!")
 
         cv2.imshow("marked", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     elif args.output == "split":
         sheets = get_sheets(img)
 
-        print("DONE!")
-
         for idx, sheet in enumerate(sheets):
-            cv2.imshow(f"sheet{idx}", sheet)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            cv2.imwrite(f"images/sheet{idx}.png", sheet)
 
     return
 
