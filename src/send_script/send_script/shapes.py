@@ -1,10 +1,12 @@
+import argparse
 from math import atan2
 from typing import List, Tuple
 
 import cv2
 import numpy as np
 
-from src.send_script.send_script import detector
+import detector
+import path
 
 # Type definition
 Point2D = Tuple[float, float]  # (x, y)
@@ -71,4 +73,68 @@ def detect(img: np.ndarray) -> List[Frame2D]:
 
 
 def calculate_path(cv2image):
-    images = detector.get_sheets(cv2image)
+    canvas, template = detector.get_sheets2(cv2image)
+
+    path_points, jump_points = path.get_path(template)
+
+    template_shape = template.shape
+
+    template_dim1, template_dim2 = template_shape[:2]
+    if template_dim1 >= template_dim2:
+        template_corners = [(0, template_dim2), (template_dim1, template_dim2), (template_dim1, 0), (0, 0)]
+    else:
+        template_corners = [(0, 0), (0, template_dim2), (template_dim1, template_dim2), (template_dim1, 0)]
+
+    # c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
+    c1, c2, c3, c4 = canvas
+    dist1 = path.distance(c1, c2)
+    dist2 = path.distance(c1, c4)
+    distances = [dist1, dist2]
+    distances.sort()
+
+    if dist1 >= dist2:
+        world_canvas_corners = [c1, c2, c3, c4]
+    else:
+        world_canvas_corners = [c2, c3, c4, c1]
+
+    print(f"TEMPLATE: {template_corners}")
+    print(f"CANVAS: {world_canvas_corners}")
+
+    perspective_trans = cv2.getPerspectiveTransform(np.array(template_corners, np.float32),
+                                                    np.array(world_canvas_corners, np.float32))
+
+    pp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in path_points]
+    jp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in jump_points]
+
+    return pp, jp
+
+
+def main():
+    args = parse_args()
+
+    # I/O and resize image if it's pretty large for GrabCut
+    img = cv2.imread(args.input)
+    assert img is not None
+
+    pp, jp = calculate_path(img)
+
+    for p in pp:
+        cv2.circle(img, (round(p[0]), round(p[1])), 5, (255, 0, 0), -1)
+
+    cv2.imshow("path", img)
+
+    print("DONE!")
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Document detector")
+    parser.add_argument('-i', '--input', help="Path to image")
+
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    main()
