@@ -4,7 +4,7 @@
 import argparse
 import cv2
 import numpy as np
-import pysnooper
+# import pysnooper
 from typing import List, Tuple, Optional
 
 
@@ -37,7 +37,7 @@ def order_points(pts) -> List[int]:
     return rect.astype('int').tolist()
 
 
-@pysnooper.snoop()
+# @pysnooper.snoop()
 def find_dest(pts):
     (tl, tr, br, bl) = pts
     # Finding the maximum width.
@@ -88,7 +88,7 @@ def find_rect(img: np.ndarray) -> Tuple:
     return contours
 
 
-@pysnooper.snoop()
+# @pysnooper.snoop()
 def find_corner(contour) -> List[int]:
     epsilon = 0.02 * cv2.arcLength(contour, True)
     corners = cv2.approxPolyDP(contour, epsilon, True)
@@ -104,6 +104,29 @@ def find_corner(contour) -> List[int]:
     return corners
 
 
+def line_intersection(line1, line2):
+    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+    def det(a, b):
+        return a[0] * b[1] - a[1] * b[0]
+
+    div = det(xdiff, ydiff)
+    if div == 0:
+       raise Exception('lines do not intersect')
+
+    d = (det(*line1), det(*line2))
+    x = det(d, xdiff) / div
+    y = det(d, ydiff) / div
+
+    return x, y
+
+
+def find_templates_and_canvas(img, ):
+    return
+
+
+# Debugging function
 def resize(img: np.ndarray) -> np.ndarray:
     dim_limit = 1080
 
@@ -150,7 +173,7 @@ def get_sheets(cv2image) -> List[np.array]:
     return images
 
 
-@pysnooper.snoop()
+# @pysnooper.snoop()
 def main():
     args = parse_args()
 
@@ -166,7 +189,14 @@ def main():
             cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
             cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
 
-    cv2.imwrite('Image.png', img)
+    # destination_corners = find_dest(corners)
+
+    # # Getting the homography and doing perspective transform.
+    # T = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
+    # final = cv2.warpPerspective(
+    #     img, T, (destination_corners[2][0], destination_corners[2][1]), flags=cv2.INTER_LINEAR)
+
+    # cv2.imwrite('Image.png', img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 

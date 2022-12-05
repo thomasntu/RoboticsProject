@@ -4,48 +4,17 @@ import time
 from typing import List
 import rclpy
 
-import sys
-
-sys.path.append('/home/robot/colcon_ws/install/tm_msgs/lib/python3.6/site-packages')
-from tm_msgs.msg import *
-from tm_msgs.srv import *
-
+from time import sleep
 import cv2
-from . import shapes
+from . import detector, shapes
+from .controller import send_script, set_io
+import numpy as np
 import math as m
 from os.path import exists
 from os import remove
 
-
-# arm client
-def send_script(script):
-    arm_node = rclpy.create_node('arm')
-    arm_cli = arm_node.create_client(SendScript, 'send_script')
-
-    while not arm_cli.wait_for_service(timeout_sec=1.0):
-        arm_node.get_logger().info('service not availabe, waiting again...')
-
-    move_cmd = SendScript.Request()
-    move_cmd.script = script
-    arm_cli.call_async(move_cmd)
-    arm_node.destroy_node()
-
-
-# gripper client
-def set_io(state):
-    gripper_node = rclpy.create_node('gripper')
-    gripper_cli = gripper_node.create_client(SetIO, 'set_io')
-
-    while not gripper_cli.wait_for_service(timeout_sec=1.0):
-        node.get_logger().info('service not availabe, waiting again...')
-
-    io_cmd = SetIO.Request()
-    io_cmd.module = 1
-    io_cmd.type = 1
-    io_cmd.pin = 0
-    io_cmd.state = state
-    gripper_cli.call_async(io_cmd)
-    gripper_node.destroy_node()
+def alpha_blend(a, b, alpha):
+    return (np.array(a) * alpha + np.array(b) * (1 - alpha)).tolist()
 
 
 def loop():
@@ -56,6 +25,7 @@ def loop():
         if exists(filename):
             # An image was recorded
             time.sleep(1)
+
             image = cv2.imread(filename)
 
             # Delete the image after reading
@@ -111,6 +81,76 @@ def loop():
             break
 
 
+def loop2():
+    start = time.time()
+
+    while True:
+
+        filename = f'images/IMG.png'
+
+        if exists(filename):
+            time.sleep(1)
+
+            image = cv2.imread(filename)
+            remove(filename)
+
+            contours = detector.find_rect(image)
+            rects = list(filter(lambda x: bool(x), [detector.find_corner(c) for c in contours]))
+            print(f"Rectangles: {rects}")
+
+            for rect in rects[:1]:
+                tl, tr, br, bl = rect
+                center = detector.line_intersection((tl, br), (tr, bl))
+
+                # Draw rectangles
+                # for corner in rect:
+                #     # center = detector.line_intersection((tl, br), (tr, bl))
+                #     x, y = shapes.img2world(alpha_blend(center, corner, 0.75))       # top_l in world coordinate
+                #     # rect = [shapes.img2world(x, y) for x, y in rect]
+                #     # x, y = shapes.img2world(x, y)
+
+                #     # TODO:
+                #     # - implement class for generating command.
+                #     # - send_script() is non-blocking
+                #     frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
+                #     script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+
+                #     send_script(script_ptp)
+
+                #     # TODO: rotate and face to next node
+                #     frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
+                #     script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+
+                #     send_script(script_ptp)
+
+                # Draw circles:
+                # (We treat the stroke as combination of line segments)
+                # TMRobot constructs circle by 3 points:
+                #  - Current position -> center
+                #  - Point it passed by
+                #  - End point
+                # radius = 300
+                # pb = (center[0] + radius * m.cos(0), center[1] + radius * m.sin(0))
+                # pe = (center[0] + radius * m.cos(m.radians(270)), center[1] + radius * m.sin(m.radians(270)))
+                # sx, sy = shapes.img2world(pb)       # top_l in world coordinate
+                # ex, ey = shapes.img2world(pe)
+
+                # x, y = shapes.img2world(center)
+                # frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
+
+                # script_ptp = f"PTP(\"CPP\",{frame},100,300,0,false)"
+                # send_script(script_ptp)
+
+                # pb = f"{sx:.1f}, {sy:.1f}, 250, -180.00, 0.0, 135.00"
+                # pe = f"{ex:.1f}, {ey:.1f}, 250, -180.00, 0.0, 135.00"
+
+                # script_circle = f"Circle(\"CPP\",{pb},{pe},100,200,50,270,false)"
+                # send_script(script_circle)
+
+        elif time.time() - start > 120:
+            break
+
+
 def main(args=None):
     rclpy.init(args=args)
 
@@ -130,7 +170,6 @@ def main(args=None):
     script1 = "PTP(\"CPP\"," + targetP1 + ",100,200,0,false)"
     send_script(script1)
     send_script("Vision_DoJob(job1)")
-    set_io(0.0)
 
     # Enter into the main loop
     loop()
