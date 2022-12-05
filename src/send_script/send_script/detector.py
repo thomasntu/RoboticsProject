@@ -176,7 +176,7 @@ def main():
 
     # I/O and resize image if it's pretty large for GrabCut
     img = cv2.imread(args.input)
-    img = resize(img)
+    # img = resize(img)
 
     if args.output == "marked":
 

@@ -45,7 +45,7 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
     print(f"The cols: {cols}")
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points: Set[Point2D] = set()
-    border = 10
+    border = round(min(rows, cols) * 0.01)
     for i in range(border, rows - 1 - border):
         for j in range(border, cols - 1 - border):
             if cv_image[i, j] == 255:
@@ -68,7 +68,7 @@ def path_planning(_points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
         _points.remove(nn)
         path.append(nn)
 
-        if dist > 3:
+        if dist > 2:
             jumps.append(point)
 
         point = nn
@@ -134,8 +134,9 @@ def resize(img: np.ndarray) -> np.ndarray:
     dim_limit = 720
 
     max_dim = max(img.shape)
-    resize_scale = dim_limit / max_dim
-    img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
+    if dim_limit < max_dim:
+        resize_scale = dim_limit / max_dim
+        img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
 
     return img
 
