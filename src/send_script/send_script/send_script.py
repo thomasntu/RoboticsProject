@@ -99,8 +99,8 @@ def loop2():
             image = cv2.imread(filename)
             remove(filename)
 
-            contours = detector.find_rect(image)
-            rects = list(filter(lambda x: bool(x), [detector.find_corner(c) for c in contours]))
+            contours = detector.find_contours(image)
+            rects = list(filter(lambda x: bool(x), [detector.find_contour_with_n_corner(c) for c in contours]))
             print(f"Rectangles: {rects}")
 
             for rect in rects[:1]:
