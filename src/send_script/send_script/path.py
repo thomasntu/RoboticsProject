@@ -1,49 +1,29 @@
 import argparse
 import math
-from typing import List, Tuple
+from typing import List, Set, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+Point2D = Tuple[float, float]  # (x, y)
 
-# Definition of classes
-class Point:  # Point definition
-    def __init__(self, x, y, dist):
-        self.x = x  # Coordinate x
-        self.y = y  # Coordinate y
-        self.dist = dist
 
-    def __str__(self):  # Print the points
-        return f'x: {self.x:.2f}, y: {self.y:.2f}'
+def distance(a: Point2D, b: Point2D):
+    return math.sqrt(math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2))
 
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.dist == other.dist
 
-    def __hash__(self):
-        return hash(f"{self.x}{self.y}{self.dist}")
+def find_nn(point: Point2D, points: Set[Point2D]):
+    assert len(points) > 0
+    min_dist = float('inf')
+    nn = None
+    for other in points:
+        dist = distance(point, other)
+        if dist < min_dist:
+            min_dist = dist
+            nn = other
 
-    def clone(self):
-        return Point(self.x, self.y, self.dist)
-
-    def calc_dist(self, val2):  # Distance from given point to other
-        a = (val2.x - self.x)
-
-        b = (val2.y - self.y)
-        return math.sqrt(a * a + b * b)  # Pitagora's theorem
-
-    def cn(self, _points):  # Looks for the closest neighbor
-        aux = float('inf')  # Each time function is called, distance is supposed as infinity
-        pos = 0  # Initialitation of index; also used for the last point
-        for i in range(len(_points)):  # Checks the distance with all the points
-            dist = self.calc_dist(_points[i])
-            if (dist > 0) & (dist < aux):  # Keeps the point with minor distance
-                aux = dist
-                pos = i
-                _points[i].dist = dist
-        p = _points[pos]
-        _points.pop(pos)
-        return p
+    return nn, min_dist
 
 
 def edge_detection_canny(cv_image):
@@ -59,48 +39,39 @@ def edge_detection_canny(cv_image):
     return cv_image
 
 
-def path_planning_creation(cv_image) -> Tuple[List[Point], List[Point]]:
+def path_pixels_to_points(cv_image) -> Set[Point2D]:
     [rows, cols] = np.shape(cv_image)
     print(f"The rows: {rows}")
     print(f"The cols: {cols}")
     # Create the arrays with the coordinate of the point that belongs to the corners detected
-    points = []
+    points: Set[Point2D] = set()
     border = 10
     for i in range(border, rows - 1 - border):
         for j in range(border, cols - 1 - border):
             if cv_image[i, j] == 255:
                 nx = j
                 ny = i
-                dist = float('inf')
-                points.append(Point(nx, ny, dist))
+                points.add((nx, ny))
 
-    res = path_planning_with_greedy_colours(points)
-    return res
+    return points
 
 
-def path_planning_with_greedy_colours(_points) -> Tuple[List[Point], List[Point]]:
-    jumps = []
-    path = []
-    # Starts looking for the closest neighbour(CN)
-    fp = _points[0]
-    while True:
-        fcn = fp.cn(_points)  # Calculate the CN
+def path_planning(_points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
+    jumps: List[Point2D] = []
+    path: List[Point2D] = []
 
-        if fcn.x == float('inf'):
-            assert fcn.y == float('inf')
-            break
+    point = _points.pop()
+    path.append(point)
 
-        clone = fcn.clone()
+    while len(_points) > 0:
+        nn, dist = find_nn(point, _points)
+        _points.remove(nn)
+        path.append(nn)
 
-        if fcn.dist > 4:
-            jumps.append(fp.clone())
-            jumps.append(clone)
+        if dist > 3:
+            jumps.append(point)
 
-        path.append(clone)
-
-        fp.x = float('inf')  # Turns the points to infinity to not taking later
-        fp.y = float('inf')
-        fp = fcn
+        point = nn
 
     return path, jumps
 
@@ -113,11 +84,11 @@ def straighten_lines(path, jumps):
 
     corners = [point0]
 
-    old_angle = round(math.atan2(point0.y - prev_points[-1].y, point0.x - prev_points[-1].x), 2)
+    old_angle = round(math.atan2(point0[1] - prev_points[-1][1], point0[0] - prev_points[-1][0]), 2)
 
     for point in path[step + 1:]:
         prev_point = prev_points[0]
-        new_angle = round(math.atan2(prev_point.y - point.y, prev_point.x - point.x), 2)
+        new_angle = round(math.atan2(prev_point[1] - point[1], prev_point[0] - point[0]), 2)
 
         jump = prev_point in jumps
         if jump or old_angle != new_angle:
@@ -150,15 +121,10 @@ def detect_lines(cv2_image):
     cv2.destroyAllWindows()
 
 
-def get_path(cv2image) -> Tuple[List[Point], List[Point]]:
-    """
-    returns x and y coordinates of points + x and y coordinates of movements
-    """
-    print("Detecting Corners with Edge_Detection_Canny...")
+def get_path(cv2image) -> Tuple[List[Point2D], List[Point2D]]:
     corners_detected = edge_detection_canny(cv2image)
-    # detect_line(corners_detected)
-    print("Creating Path_Planning ...")
-    path, jumps = path_planning_creation(corners_detected)
+    points = path_pixels_to_points(corners_detected)
+    path, jumps = path_planning(points)
     path = straighten_lines(path, jumps)
     return path, jumps
 
@@ -181,34 +147,20 @@ def main():
     img = cv2.imread(args.input)
     img = resize(img)
 
-    path_corners, jumps = get_path(img)
+    points, jumps = get_path(img)
 
-    x = [point.x for point in path_corners]
-    y = [point.y for point in path_corners]
+    prev_point = points[0]
+    for corner in points[1:]:
+        is_jump = prev_point in jumps
+        plt.plot([prev_point[0], corner[0]], [prev_point[1], corner[1]], color='orange' if is_jump else 'blue')
+        prev_point = corner
 
-    x_jumps = [point.x for point in jumps]
-    y_jumps = [point.y for point in jumps]
+    x = [point[0] for point in points]
+    y = [point[1] for point in points]
+    plt.scatter(x, y, color='yellow')
 
-    plt.plot(x, y, color='blue')  # Plot the graph of points
-    plt.scatter(x, y, color='yellow')  # Plot the graph of points
-
-    plt.plot(x_jumps, y_jumps, color='orange')  # Plot the graph of point
-
-    draw_start = (x[0], y[0])
-    draw_end = (x[-1], y[-1])
-
-    jump_start = (x_jumps[0], y_jumps[0])
-    jump_end = (x_jumps[-1], y_jumps[-1])
-
-    plt.plot(draw_start[0], draw_start[1], color="green", marker="x")
-    plt.plot(draw_end[0], draw_end[1], color="red", marker="x")
-    plt.plot(jump_start[0], jump_start[1], color="green", marker="+")
-    plt.plot(jump_end[0], jump_end[1], color="red", marker="+")
-
-    print(draw_start)
-    print(draw_end)
-    print(jump_start)
-    print(jump_end)
+    plt.plot(x[0], y[0], color="green", marker="x")
+    plt.plot(x[-1], y[-1], color="red", marker="x")
 
     print("DONE!")
 
