@@ -2,8 +2,9 @@
 # https://learnopencv.com/automatic-document-scanner-using-opencv/
 
 import argparse
+import random
 # import pysnooper
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -57,7 +58,7 @@ def find_dest(pts):
     return order_points(destination_corners)
 
 
-def find_rect(img: np.ndarray) -> Tuple:
+def find_rect(img: np.ndarray) -> List:
     """
     Find contours with simple content.
     """
@@ -83,10 +84,9 @@ def find_rect(img: np.ndarray) -> Tuple:
     # Finding contours for the detected edges.
     # Implementation: sort contours by area, and select 5 largest contours as candidates
     _, contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
-    # contours, _ = cv2.findContours(canny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    return contours
+    return contours[:2]  # only return outer contours
 
 
 # @pysnooper.snoop()
@@ -143,24 +143,27 @@ def resize(img: np.ndarray) -> np.ndarray:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
+    parser.add_argument('-o', '--output', help="split or marked", default="marked")
 
     return parser.parse_args()
 
 
-def get_corners(cv2image):
+def get_rectangles(cv2image, draw_contours=False):
     # Find candidate contours and calculate corner if it can be approximated to rectangle
     contours = find_rect(cv2image)
 
-    for c in contours:
-        cv2.drawContours(cv2image, c, -1, (0, 255, 255), 3)
+    if draw_contours:
+        for c in contours:
+            cv2.drawContours(cv2image, c, -1,
+                             (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)), 3)
 
     corners = [find_corner(c) for c in contours]
-    rectangles = filter(lambda x: bool(x), corners)
+    rectangles = list(filter(lambda x: bool(x), corners))
     return rectangles
 
 
 def get_sheets(cv2image) -> List[np.array]:
-    rectangles = get_corners(cv2image)
+    rectangles = get_rectangles(cv2image)
 
     images = []
     for rect in rectangles:
@@ -183,15 +186,28 @@ def main():
     img = cv2.imread(args.input)
     img = resize(img)
 
-    rectangles = get_corners(img)
+    if args.output == "marked":
 
-    # Displaying the contours and corners.
-    for rect in rectangles:
-        for char, corner in enumerate(rect, ord('A')):
-            cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
-            cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
+        rectangles = get_rectangles(img, draw_contours=True)
 
-    cv2.imwrite('Image.png', img)
+        # Displaying the contours and corners.
+        for rect in rectangles:
+            for char, corner in enumerate(rect, ord('A')):
+                cv2.circle(img, tuple(corner), 5, (255, 0, 0), 2)
+                cv2.putText(img, chr(char), tuple(corner), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv2.LINE_AA)
+
+        print("DONE!")
+
+        cv2.imshow("marked", img)
+
+    elif args.output == "split":
+        sheets = get_sheets(img)
+
+        print("DONE!")
+
+        for idx, sheet in enumerate(sheets):
+            cv2.imshow(f"sheet{idx}", sheet)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
