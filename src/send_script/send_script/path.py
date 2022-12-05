@@ -95,25 +95,28 @@ def path_planning_with_greedy_colours(_points) -> Tuple[List[Point], List[Point]
 
 
 def straighten_lines(path, jumps):
+    step = 2
+
+    prev_points = path[1:step + 1]
     point0 = path[0]
-    point1 = path[1]
-    point2 = path[2]
 
     corners = [point0]
 
-    old_angle = round(math.atan2(point0.y - point2.y, point0.x - point2.x), 2)
+    old_angle = round(math.atan2(point0.y - prev_points[-1].y, point0.x - prev_points[-1].x), 2)
 
-    for point3 in path[3:]:
-        new_angle = round(math.atan2(point1.y - point3.y, point1.x - point3.x), 2)
+    for point in path[step + 1:]:
+        prev_point = prev_points[0]
+        new_angle = round(math.atan2(prev_point.y - point.y, prev_point.x - point.x), 2)
 
-        if point1 in jumps or old_angle != new_angle:
-            corners.append(point1)
+        if prev_point in jumps or old_angle != new_angle:
+            corners.append(prev_point)
 
-        point1 = point2
-        point2 = point3
+        prev_points.append(point)
+        prev_points = prev_points[1:]
+
         old_angle = new_angle
 
-    corners.append(point2)
+    corners.append(point)
 
     return corners
 
@@ -150,9 +153,6 @@ def main():
     img = resize(img)
 
     path_corners, jumps = get_path(img)
-
-    for corner in path_corners[:10]:
-        print(corner)
 
     x = [point.x for point in path_corners]
     y = [point.y for point in path_corners]
