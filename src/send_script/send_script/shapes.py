@@ -81,12 +81,12 @@ def calculate_path(cv2image):
 
     template_dim1, template_dim2 = template_shape[:2]
     if template_dim1 >= template_dim2:
-        template_corners = [(0, template_dim2), (template_dim1, template_dim2), (template_dim1, 0), (0, 0)]
+        template_corners = [(0, 0), (0, template_dim1), (template_dim2, template_dim1), (template_dim2, 0)]
     else:
-        template_corners = [(0, 0), (0, template_dim2), (template_dim1, template_dim2), (template_dim1, 0)]
+        template_corners = [(template_dim2, 0), (0, 0), (0, template_dim1), (template_dim2, template_dim1)]
 
-    # c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
-    c1, c2, c3, c4 = canvas
+    c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
+    # c1, c2, c3, c4 = canvas
     dist1 = path.distance(c1, c2)
     dist2 = path.distance(c1, c4)
     distances = [dist1, dist2]

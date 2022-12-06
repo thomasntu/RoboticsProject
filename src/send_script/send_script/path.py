@@ -45,7 +45,7 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
     print(f"The cols: {cols}")
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points: Set[Point2D] = set()
-    border = round(min(rows, cols) * 0.01)
+    border = round(min(rows, cols) * 0.1)
     for i in range(border, rows - 1 - border):
         for j in range(border, cols - 1 - border):
             if cv_image[i, j] == 255:

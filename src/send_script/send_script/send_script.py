@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import rclpy
 
-from . import detector, shapes
+from . import shapes
 from .controller import send_script, set_io
 
 
@@ -99,82 +99,56 @@ def loop2():
             image = cv2.imread(filename)
             remove(filename)
 
-            contours = detector.find_contours(image)
-            rects = list(filter(lambda x: bool(x), [detector.find_contour_with_n_corner(c) for c in contours]))
-            print(f"Rectangles: {rects}")
+            # Go to a point close to the table while computing the path
+            go_to(350, 350, 300)
 
-            for rect in rects[:1]:
-                tl, tr, br, bl = rect
-                center = detector.line_intersection((tl, br), (tr, bl))
+            path_nodes, jump_nodes = shapes.calculate_path(image)
 
-                # Draw rectangles
-                # for corner in rect:
-                #     # center = detector.line_intersection((tl, br), (tr, bl))
-                #     x, y = shapes.img2world(alpha_blend(center, corner, 0.75))       # top_l in world coordinate
-                #     # rect = [shapes.img2world(x, y) for x, y in rect]
-                #     # x, y = shapes.img2world(x, y)
+            prev_node = path_nodes[0]
+            # Go to the first node
+            go_to_point(prev_node, z=300)
+            go_to_point(prev_node)
 
-                #     # TODO:
-                #     # - implement class for generating command.
-                #     # - send_script() is non-blocking
-                #     frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
-                #     script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
+            for path_node in path_nodes:
+                if prev_node in jump_nodes:
+                    jump(prev_node, path_node)
+                else:
+                    go_to_point(path_node)
+                prev_node = path_nodes
 
-                #     send_script(script_ptp)
-
-                #     # TODO: rotate and face to next node
-                #     frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
-                #     script_ptp = "PTP(\"CPP\"," + frame + ",100,300,0,false)"
-
-                #     send_script(script_ptp)
-
-                # Draw circles:
-                # (We treat the stroke as combination of line segments)
-                # TMRobot constructs circle by 3 points:
-                #  - Current position -> center
-                #  - Point it passed by
-                #  - End point
-                # radius = 300
-                # pb = (center[0] + radius * m.cos(0), center[1] + radius * m.sin(0))
-                # pe = (center[0] + radius * m.cos(m.radians(270)), center[1] + radius * m.sin(m.radians(270)))
-                # sx, sy = shapes.img2world(pb)       # top_l in world coordinate
-                # ex, ey = shapes.img2world(pe)
-
-                # x, y = shapes.img2world(center)
-                # frame = f"{x:.1f}, {y:.1f}, 250, -180.00, 0.0, 135.00"
-
-                # script_ptp = f"PTP(\"CPP\",{frame},100,300,0,false)"
-                # send_script(script_ptp)
-
-                # pb = f"{sx:.1f}, {sy:.1f}, 250, -180.00, 0.0, 135.00"
-                # pe = f"{ex:.1f}, {ey:.1f}, 250, -180.00, 0.0, 135.00"
-
-                # script_circle = f"Circle(\"CPP\",{pb},{pe},100,200,50,270,false)"
-                # send_script(script_circle)
+            # return to initial position
+            go_to(350, 350, 730)
 
         elif time.time() - start > 120:
             break
 
 
+def jump(p1, p2):
+    go_to_point(p1, z=300)
+    go_to_point(p2, z=300)
+    go_to_point(p2)
+
+
+def go_to_point(p, z=200):
+    go_to(p[0], p[1], z)
+
+
+def go_to(x, y, z):
+    target_p1 = f"{x}, {y}, {z}, -180.00, 0.0, 135.00"
+    script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
+    send_script(script1)
+
+
+def take_picture():
+    send_script("Vision_DoJob(job1)")
+
+
 def main(args=None):
     rclpy.init(args=args)
 
-    # --- move command by joint angle ---#
-    # script = 'PTP(\"JPP\",45,0,90,0,90,0,35,200,0,false)'
-
-    # --- move command by end effector's pose (x,y,z,a,b,c) ---#
-    # targetP1 = "398.97, -122.27, 748.26, -179.62, 0.25, 90.12"s
-
-    # Initial camera position for taking image (Please do not change the values)
-    # For right arm: targetP1 = "230.00, 230, 730, -180.00, 0.0, 135.00"
-    # For left  arm: targetP1 = "350.00, 350, 730, -180.00, 0.0, 135.00"
-    # set_io(0.0)
-
     # Take a picture
-    target_p1 = "350, 350, 730, -180.00, 0.0, 135.00"
-    script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
-    send_script(script1)
-    send_script("Vision_DoJob(job1)")
+    go_to(350, 350, 730)
+    take_picture()
 
     # Enter into the main loop
     loop2()
