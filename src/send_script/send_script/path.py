@@ -27,15 +27,23 @@ def find_nn(point: Point2D, points: Set[Point2D]):
 
 
 def edge_detection_canny(cv_image):
-    cv_image = cv2.flip(cv_image, 1)
-    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    # cv2.imshow("blurred", blurred)
-    canny = cv2.Canny(blurred, 100, 200)
-    cv2.imshow("canny", canny)
-    cv2.waitKey(0)
+    img = cv2.flip(cv_image, 1)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.GaussianBlur(img, (3, 3), 0)
+    # img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    img = cv2.Canny(img, 10, 200)
+    cv2.imshow("canny", img)
 
-    return canny
+    # img = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+    # cv2.imshow("dilate", img)
+    # _, contours, hierarchy = cv2.findContours(img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    # img = np.zeros(cv_image.shape, np.float32)
+    # cv2.drawContours(img, contours, -1, (255, 255, 255), 1)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # cv2.imshow("contours", img)
+    # cv2.waitKey(0)
+
+    return img
 
 
 def path_pixels_to_points(cv_image) -> Set[Point2D]:
