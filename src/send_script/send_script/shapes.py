@@ -72,7 +72,7 @@ def detect(img: np.ndarray) -> List[Frame2D]:
     return objects
 
 
-def calculate_path(cv2image):
+def calculate_path(cv2image, to_world=True):
     canvas, template = detector.get_sheets2(cv2image)
 
     path_points, jump_points = path.get_path(template)
@@ -85,8 +85,10 @@ def calculate_path(cv2image):
     else:
         template_corners = [(template_dim2, 0), (0, 0), (0, template_dim1), (template_dim2, template_dim1)]
 
-    c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
-    # c1, c2, c3, c4 = canvas
+    if to_world:
+        c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
+    else:
+        c1, c2, c3, c4 = canvas
     dist1 = path.distance(c1, c2)
     dist2 = path.distance(c1, c4)
     distances = [dist1, dist2]
@@ -116,7 +118,7 @@ def main():
     img = cv2.imread(args.input)
     assert img is not None
 
-    pp, jp = calculate_path(img)
+    pp, jp = calculate_path(img, to_world=False)
 
     for p in pp:
         cv2.circle(img, (round(p[0]), round(p[1])), 5, (255, 0, 0), -1)
