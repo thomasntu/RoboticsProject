@@ -2,7 +2,6 @@
 # https://learnopencv.com/automatic-document-scanner-using-opencv/
 
 import argparse
-import random
 # import pysnooper
 from typing import List, Optional, Tuple
 
@@ -64,33 +63,25 @@ def find_dest(pts):
 def find_contours(img: np.ndarray) -> List:
     """Find contours with simple content.
     """
-    # Repeated closing operation to remove text from the document.
-    kernel = np.ones((5, 5), np.uint8)
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=3)
-
-    # GrabCut: Remove background (Time consuming)
-    mask = np.zeros(img.shape[:2], np.uint8)
-    bgd_model = np.zeros((1, 65), np.float64)
-    fgd_model = np.zeros((1, 65), np.float64)
-    roi = (20, 20, img.shape[1] - 20, img.shape[0] - 20)
-    cv2.grabCut(img, mask, roi, bgd_model, fgd_model, 5, cv2.GC_INIT_WITH_RECT)
-    mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-    img = img * mask2[:, :, np.newaxis]
-
     # Edge Detection
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (11, 11), 0)
-    canny = cv2.Canny(gray, 0, 200)
-    canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    blurred = cv2.GaussianBlur(gray, (11, 11), 0)
+    # cv2.imshow("blurred", blurred)
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    # cv2.imshow("thresh", thresh)
+    canny = cv2.Canny(thresh, 0, 200)
+    # cv2.imshow("canny", canny)
+    dilated = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    # cv2.imshow("dilated", dilated)
 
     # Finding contours for the detected edges.
     # Implementation:
     # - RETR_EXTERNAL: Keep the external contours and discard all internal contours
     # - sort contours with area in descending order
-    _, contours, _ = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # OpenCV 3
+    _, contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 3
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    return contours  # only return outer contours
+    return contours
 
 
 # @pysnooper.snoop()
@@ -140,6 +131,8 @@ def get_sheets2(cv2image: np.ndarray) -> Tuple[List[Tuple[int, int]], np.ndarray
         if corner is not None:
             rectangles.append(corner)
 
+    rectangles = rectangles[:2]  # only use largest 2 rectangles
+
     # Classify if it is pattern or canvas
     images = []
     for idx, rect in enumerate(rectangles):
@@ -179,18 +172,17 @@ def resize(img: np.ndarray) -> np.ndarray:
     return img
 
 
-def get_rectangles(cv2image, draw_contours=False):
+def get_rectangles(cv2image, draw_contours=False) -> List[List[int]]:
     # Find candidate contours and calculate corner if it can be approximated to rectangle
     contours = find_contours(cv2image)
 
     if draw_contours:
         for c in contours:
-            cv2.drawContours(cv2image, c, -1,
-                             (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255)), 3)
+            cv2.drawContours(cv2image, c, -1, (0, 255, 0), 3)
 
     corners = [find_contour_with_n_corner(c) for c in contours]
     rectangles = list(filter(lambda x: bool(x), corners))
-    return rectangles
+    return rectangles[:2]
 
 
 def get_sheets(cv2image) -> List[np.array]:
@@ -260,7 +252,7 @@ def main():
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
-    parser.add_argument('-o', '--output', help="split or marked", default="marked")
+    parser.add_argument('-o', '--output', help="split, marked or prod", default="prod")
 
     return parser.parse_args()
 

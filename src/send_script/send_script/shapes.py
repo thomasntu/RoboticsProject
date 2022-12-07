@@ -72,8 +72,19 @@ def detect(img: np.ndarray) -> List[Frame2D]:
     return objects
 
 
-def calculate_path(cv2image, to_world=True):
-    canvas, template = detector.get_sheets2(cv2image)
+# Debugging function
+def resize(img: np.ndarray, dim_limit=1920) -> np.ndarray:
+    max_dim = max(img.shape)
+    if max_dim > dim_limit:
+        resize_scale = dim_limit / max_dim
+        img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
+
+    return img
+
+
+def calculate_path(cv2image, to_world=True, resize_dim=1920):
+    resized = resize(cv2image, dim_limit=resize_dim)
+    canvas, template = detector.get_sheets2(resized)
 
     path_points, jump_points = path.get_path(template)
 
@@ -81,9 +92,13 @@ def calculate_path(cv2image, to_world=True):
 
     template_dim1, template_dim2 = template_shape[:2]
     if template_dim1 >= template_dim2:
+        # Template is vertical
         template_corners = [(0, 0), (0, template_dim1), (template_dim2, template_dim1), (template_dim2, 0)]
+        print("case 1.1")
     else:
+        # Template in horizontal
         template_corners = [(template_dim2, 0), (0, 0), (0, template_dim1), (template_dim2, template_dim1)]
+        print("case 1.2")
 
     if to_world:
         c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
@@ -95,9 +110,13 @@ def calculate_path(cv2image, to_world=True):
     distances.sort()
 
     if dist1 >= dist2:
+        # Template in horizontal
         world_canvas_corners = [c1, c2, c3, c4]
+        print("case 2.1")
     else:
+        # Template is vertical
         world_canvas_corners = [c2, c3, c4, c1]
+        print("case 2.2")
 
     print(f"TEMPLATE: {template_corners}")
     print(f"CANVAS: {world_canvas_corners}")
@@ -118,10 +137,13 @@ def main():
     img = cv2.imread(args.input)
     assert img is not None
 
-    pp, jp = calculate_path(img, to_world=False)
+    max_dim = 1080
+    img = resize(img, max_dim)
+
+    pp, jp = calculate_path(img, to_world=False, resize_dim=max_dim)
 
     for p in pp:
-        cv2.circle(img, (round(p[0]), round(p[1])), 5, (255, 0, 0), -1)
+        cv2.circle(img, (round(p[0]), round(p[1])), 1, (255, 0, 0), -1)
 
     cv2.imshow("path", img)
 

@@ -29,14 +29,13 @@ def find_nn(point: Point2D, points: Set[Point2D]):
 def edge_detection_canny(cv_image):
     cv_image = cv2.flip(cv_image, 1)
     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-    # customize the second and the third argument, minVal and maxVal
-    # in function cv2.Canny if needed
-    get_edge = cv2.Canny(blurred, 10, 100)
-    cv_image = np.hstack([get_edge])
-    cv2.imshow('Corners_Extracted', cv_image)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    # cv2.imshow("blurred", blurred)
+    canny = cv2.Canny(blurred, 100, 200)
+    cv2.imshow("canny", canny)
+    cv2.waitKey(0)
 
-    return cv_image
+    return canny
 
 
 def path_pixels_to_points(cv_image) -> Set[Point2D]:
@@ -107,20 +106,6 @@ def straighten_lines(path, jumps):
     return corners
 
 
-def detect_lines(cv2_image):
-    lines = cv2.HoughLinesP(cv2_image, rho=1, theta=np.pi / 360, threshold=10, minLineLength=10, maxLineGap=1)
-    color_image = cv2.cvtColor(cv2_image, cv2.COLOR_GRAY2BGR)
-    for line in lines:
-        line = line[0]
-        point1 = (line[0], line[1])
-        point2 = (line[2], line[3])
-        cv2.line(img=color_image, pt1=point1, pt2=point2, color=(0, 255, 0), thickness=2)
-
-    cv2.imshow("lines", color_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
 def get_path(cv2image) -> Tuple[List[Point2D], List[Point2D]]:
     corners_detected = edge_detection_canny(cv2image)
     points = path_pixels_to_points(corners_detected)
@@ -129,25 +114,11 @@ def get_path(cv2image) -> Tuple[List[Point2D], List[Point2D]]:
     return path, jumps
 
 
-# Debugging function
-def resize(img: np.ndarray) -> np.ndarray:
-    dim_limit = 720
-
-    max_dim = max(img.shape)
-    if dim_limit < max_dim:
-        resize_scale = dim_limit / max_dim
-        img = cv2.resize(img, None, fx=resize_scale, fy=resize_scale)
-
-    return img
-
-
 def main():
     args = parse_args()
 
     # I/O and resize image if it's pretty large for GrabCut
     img = cv2.imread(args.input)
-    img = resize(img)
-
     points, jumps = get_path(img)
 
     prev_point = points[0]
