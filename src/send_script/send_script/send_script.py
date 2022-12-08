@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import math as m
 import time
+from tqdm import tqdm
 from os import remove
 from os.path import exists
 from typing import List
@@ -11,15 +11,16 @@ import numpy as np
 import rclpy
 
 from . import shapes
-from .controller import send_script, set_io
+from .controller import send_script
 
 
 def alpha_blend(a, b, alpha):
     return (np.array(a) * alpha + np.array(b) * (1 - alpha)).tolist()
 
+
 def jump(p1, p2):
-    go_to_point(p1, z=300)
-    go_to_point(p2, z=300)
+    go_to_point(p1, z=240)
+    go_to_point(p2, z=240)
     go_to_point(p2)
 
 
@@ -69,7 +70,7 @@ def loop():
             go_to_point(prev_node, z=300)
             go_to_point(prev_node)
 
-            for path_node in path_nodes:
+            for path_node in tqdm(path_nodes):
                 if prev_node in jump_nodes:
                     jump(prev_node, path_node)
                 else:
