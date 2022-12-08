@@ -25,7 +25,6 @@ class ImageSub(Node):
         img = np.array(data.data).reshape(data.height, data.width, 3)
         cv2.imwrite(f'images/IMG.png', img)
 
-
 def main(args=None):
     rclpy.init(args=args)
     node = ImageSub('image_sub')

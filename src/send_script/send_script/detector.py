@@ -78,7 +78,8 @@ def find_contours(img: np.ndarray) -> List:
     # Implementation:
     # - RETR_EXTERNAL: Keep the external contours and discard all internal contours
     # - sort contours with area in descending order
-    _, contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 3
+    # _, contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 4
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 3
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     return contours
@@ -121,7 +122,14 @@ def line_intersection(line1, line2):
     return x, y
 
 
-def get_sheets2(cv2image: np.ndarray) -> Tuple[List[Tuple[int, int]], np.ndarray]:
+def get_sheets2(cv2image: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
+    """
+    Returns
+    -------
+    coordinate: Tuple[int, int]
+
+    pattern: np.ndarray
+    """
     # Find candidate contours and calculate corner if it can be approximated to rectangle
     contours = find_contours(cv2image)
 

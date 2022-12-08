@@ -17,8 +17,29 @@ from .controller import send_script, set_io
 def alpha_blend(a, b, alpha):
     return (np.array(a) * alpha + np.array(b) * (1 - alpha)).tolist()
 
+def jump(p1, p2):
+    go_to_point(p1, z=300)
+    go_to_point(p2, z=300)
+    go_to_point(p2)
 
-def loop2():
+
+# z=230: Touch the canvas
+# z=227: Draw
+def go_to_point(p, z=227):
+    go_to(p[0], p[1], z)
+
+
+def go_to(x, y, z):
+    target_p1 = f"{x}, {y}, {z}, -180.00, 0.0, 135.00"
+    script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
+    send_script(script1)
+
+
+def take_picture():
+    send_script("Vision_DoJob(job1)")
+
+
+def loop():
     """
     Copy image
     """
@@ -37,7 +58,13 @@ def loop2():
 
             path_nodes, jump_nodes = shapes.calculate_path(image)
 
+            # TODO: Modify return type in calculate_path()
+            # such that `if prev_node in jump_nodes` is valid
+            path_nodes = np.array(path_nodes)
+            jump_nodes = np.array(jump_nodes)
+
             prev_node = path_nodes[0]
+
             # Go to the first node
             go_to_point(prev_node, z=300)
             go_to_point(prev_node)
@@ -47,34 +74,13 @@ def loop2():
                     jump(prev_node, path_node)
                 else:
                     go_to_point(path_node)
-                prev_node = path_nodes
+                prev_node = path_node
 
             # return to initial position
             go_to(350, 350, 730)
 
         elif time.time() - start > 120:
             break
-
-
-def jump(p1, p2):
-    go_to_point(p1, z=300)
-    go_to_point(p2, z=300)
-    go_to_point(p2)
-
-
-def go_to_point(p, z=200):
-    go_to(p[0], p[1], z)
-
-
-def go_to(x, y, z):
-    target_p1 = f"{x}, {y}, {z}, -180.00, 0.0, 135.00"
-    script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
-    send_script(script1)
-
-
-def take_picture():
-    send_script("Vision_DoJob(job1)")
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -84,7 +90,7 @@ def main(args=None):
     take_picture()
 
     # Enter into the main loop
-    loop2()
+    loop()
 
     # Shutdown
     rclpy.shutdown()

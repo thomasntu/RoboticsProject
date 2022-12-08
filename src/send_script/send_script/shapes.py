@@ -5,8 +5,8 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-import detector
-import path
+from . import detector
+from . import path
 
 # Type definition
 Point2D = Tuple[float, float]  # (x, y)
@@ -83,20 +83,31 @@ def resize(img: np.ndarray, dim_limit=1920) -> np.ndarray:
 
 
 def calculate_path(cv2image, to_world=True, resize_dim=1920):
-    resized = resize(cv2image, dim_limit=resize_dim)
-    canvas, template = detector.get_sheets2(resized)
+    """
+    Returns
+    -------
+    pp: List[np.ndarray]
+        path nodes
 
+    jp: List[np.ndarray]
+        jump nodes
+    """
+    resized = resize(cv2image, dim_limit=resize_dim)
+
+    print("Finding canvas and template")
+    canvas, template = detector.get_sheets2(resized)
+    print(f"canvas: {canvas}")
+
+    print("Calculating path")
     path_points, jump_points = path.get_path(template)
 
-    template_shape = template.shape
-
-    template_dim1, template_dim2 = template_shape[:2]
+    template_dim1, template_dim2 = template.shape[:2]
     if template_dim1 >= template_dim2:
         # Template is vertical
         template_corners = [(0, 0), (0, template_dim1), (template_dim2, template_dim1), (template_dim2, 0)]
         print("case 1.1")
     else:
-        # Template in horizontal
+        # Template is horizontal
         template_corners = [(template_dim2, 0), (0, 0), (0, template_dim1), (template_dim2, template_dim1)]
         print("case 1.2")
 
@@ -110,19 +121,21 @@ def calculate_path(cv2image, to_world=True, resize_dim=1920):
     distances.sort()
 
     if dist1 >= dist2:
-        # Template in horizontal
+        # Canvas is horizontal
         world_canvas_corners = [c1, c2, c3, c4]
         print("case 2.1")
     else:
-        # Template is vertical
+        # Canvas is vertical
         world_canvas_corners = [c2, c3, c4, c1]
         print("case 2.2")
 
     print(f"TEMPLATE: {template_corners}")
     print(f"CANVAS: {world_canvas_corners}")
 
-    perspective_trans = cv2.getPerspectiveTransform(np.array(template_corners, np.float32),
-                                                    np.array(world_canvas_corners, np.float32))
+    perspective_trans = cv2.getPerspectiveTransform(
+        np.array(template_corners, np.float32),
+        np.array(world_canvas_corners, np.float32)
+    )
 
     pp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in path_points]
     jp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in jump_points]
