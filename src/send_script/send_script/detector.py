@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 
 
-def order_points(pts) -> List[int]:
+def order_points(pts) -> List[Tuple[int, int]]:
     """
     Rearrange coordinates to order: top-left, top-right, bottom-right, bottom-left
 
@@ -67,11 +67,12 @@ def find_contours(img: np.ndarray) -> List:
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (11, 11), 0)
     # cv2.imshow("blurred", blurred)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    # cv2.imshow("thresh", thresh)
-    canny = cv2.Canny(thresh, 0, 200)
+    # thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    _, thresh = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY)
+    # v2.imshow("thresh", thresh)
+    # canny = cv2.Canny(thresh, 0, 200)
     # cv2.imshow("canny", canny)
-    dilated = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    # dilated = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
     # cv2.imshow("dilated", dilated)
 
     # Finding contours for the detected edges.
@@ -79,14 +80,14 @@ def find_contours(img: np.ndarray) -> List:
     # - RETR_EXTERNAL: Keep the external contours and discard all internal contours
     # - sort contours with area in descending order
     # _, contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 4
-    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 3
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # OpenCV 3
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     return contours
 
 
 # @pysnooper.snoop()
-def find_contour_with_n_corner(contour, n=4) -> Optional[List[int]]:
+def find_contour_with_n_corner(contour, n=4) -> Optional[List[Tuple[int, int]]]:
     """Approximate contour with `n` corners.
     """
     # Don't forget another method cv2.convexHull() and cv2.minAreaRect()
@@ -122,7 +123,7 @@ def line_intersection(line1, line2):
     return x, y
 
 
-def get_sheets2(cv2image: np.ndarray) -> Tuple[Tuple[int, int], np.ndarray]:
+def get_sheets2(cv2image: np.ndarray) -> Tuple[List[Tuple[int, int]], np.ndarray]:
     """
     Returns
     -------
@@ -209,6 +210,32 @@ def get_sheets(cv2image) -> List[np.array]:
     return images
 
 
+def get_single_canvas(cv2image: np.ndarray) -> List[Tuple[int, int]]:
+    # Find candidate contours and calculate corner if it can be approximated to rectangle
+    contours = find_contours(cv2image)
+
+    rectangles = []
+    for contour in contours:
+        corner = find_contour_with_n_corner(contour)
+        if corner is not None:
+            rectangles.append(corner)
+
+    return rectangles[0]  # only use the largest rectangle
+
+
+def face_detection(cv2image_face: np.ndarray, cv2image_canvas: np.ndarray):
+    # Load the cascade
+    face_cascade = cv2.CascadeClassifier('face_detection/haarcascade_frontalface_default.xml')
+    # Convert into grayscale
+    gray = cv2.cvtColor(cv2image_face, cv2.COLOR_BGR2GRAY)
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    (x, y, w, h) = faces[0]
+    face = cv2image_face.copy()[y:y + h, x:x + w]
+    canvas = get_single_canvas(cv2image_canvas)
+    return canvas, face
+
+
 # @pysnooper.snoop()
 def main():
     args = parse_args()
@@ -254,13 +281,35 @@ def main():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+    elif args.output == "face":
+        img_canvas = cv2.imread(args.input2)
+        assert img_canvas is not None
+
+        img = resize(img)
+        img_canvas = resize(img_canvas)
+
+        canvas, template = face_detection(img, img_canvas)
+
+        for c in canvas:
+            cv2.circle(img_canvas, c, 10, (255, 0, 0), -1)
+            cv2.line(img_canvas, (0, 0), c, (0, 255, 0), 1)
+
+        cv2.imshow("canvas", img_canvas)
+        cv2.imshow("face", template)
+
+        print("DONE!")
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
     return
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
-    parser.add_argument('-o', '--output', help="split, marked or prod", default="prod")
+    parser.add_argument('-i2', '--input2', help="Path to image 2")
+    parser.add_argument('-o', '--output', help="split, marked, face or prod", default="prod")
 
     return parser.parse_args()
 

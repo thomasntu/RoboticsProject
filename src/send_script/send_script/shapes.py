@@ -5,8 +5,8 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-from . import detector
-from . import path
+import detector
+import path
 
 # Type definition
 Point2D = Tuple[float, float]  # (x, y)
@@ -143,6 +143,68 @@ def calculate_path(cv2image, to_world=True, resize_dim=1920):
     return pp, jp
 
 
+def calculate_path_for_face(cv2image_face, cv2image_canvas, to_world=True, resize_dim=1920):
+    """
+    Returns
+    -------
+    pp: List[np.ndarray]
+        path nodes
+
+    jp: List[np.ndarray]
+        jump nodes
+    """
+    resized_face = resize(cv2image_face, dim_limit=resize_dim)
+    resized_canvas = resize(cv2image_canvas, dim_limit=resize_dim)
+
+    print("Finding canvas and template")
+    canvas, template = detector.face_detection(resized_face, resized_canvas)
+    print(f"canvas: {canvas}")
+
+    print("Calculating path")
+    path_points, jump_points = path.get_path(template)
+
+    template_dim1, template_dim2 = template.shape[:2]
+    if template_dim1 >= template_dim2:
+        # Template is vertical
+        template_corners = [(0, 0), (0, template_dim1), (template_dim2, template_dim1), (template_dim2, 0)]
+        print("case 1.1")
+    else:
+        # Template is horizontal
+        template_corners = [(template_dim2, 0), (0, 0), (0, template_dim1), (template_dim2, template_dim1)]
+        print("case 1.2")
+
+    if to_world:
+        c1, c2, c3, c4 = [img2world(corner) for corner in canvas]
+    else:
+        c1, c2, c3, c4 = canvas
+    dist1 = path.distance(c1, c2)
+    dist2 = path.distance(c1, c4)
+    distances = [dist1, dist2]
+    distances.sort()
+
+    if dist1 >= dist2:
+        # Canvas is horizontal
+        world_canvas_corners = [c1, c2, c3, c4]
+        print("case 2.1")
+    else:
+        # Canvas is vertical
+        world_canvas_corners = [c2, c3, c4, c1]
+        print("case 2.2")
+
+    print(f"TEMPLATE: {template_corners}")
+    print(f"CANVAS: {world_canvas_corners}")
+
+    perspective_trans = cv2.getPerspectiveTransform(
+        np.array(template_corners, np.float32),
+        np.array(world_canvas_corners, np.float32)
+    )
+
+    pp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in path_points]
+    jp = [(perspective_trans @ np.array([point[0], point[1], 1]))[:2] for point in jump_points]
+
+    return pp, jp
+
+
 def main():
     args = parse_args()
 
@@ -153,12 +215,25 @@ def main():
     max_dim = 1080
     img = resize(img, max_dim)
 
-    pp, jp = calculate_path(img, to_world=False, resize_dim=max_dim)
+    if args.output == "template":
+        pp, jp = calculate_path(img, to_world=False, resize_dim=max_dim)
 
-    for p in pp:
-        cv2.circle(img, (round(p[0]), round(p[1])), 1, (255, 0, 0), -1)
+        for p in pp:
+            cv2.circle(img, (round(p[0]), round(p[1])), 1, (255, 0, 0), -1)
 
-    cv2.imshow("path", img)
+        cv2.imshow("path", img)
+    elif args.output == "face":
+        # I/O and resize image if it's pretty large for GrabCut
+        img_canvas = cv2.imread(args.input2)
+        assert img_canvas is not None
+        img_canvas = resize(img_canvas, max_dim)
+
+        pp, jp = calculate_path_for_face(img, img_canvas, to_world=False, resize_dim=max_dim)
+
+        for p in pp:
+            cv2.circle(img_canvas, (round(p[0]), round(p[1])), 1, (255, 0, 0), -1)
+
+        cv2.imshow("path", img_canvas)
 
     print("DONE!")
 
@@ -169,6 +244,8 @@ def main():
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
+    parser.add_argument('-i2', '--input2', help="Path to image 2")
+    parser.add_argument('-o', '--output', help="template or face", default="template")
 
     return parser.parse_args()
 
