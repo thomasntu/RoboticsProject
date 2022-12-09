@@ -32,7 +32,7 @@ def edge_detection_canny(cv_image):
     img = cv2.GaussianBlur(img, (3, 3), 0)
     # img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
     img = cv2.Canny(img, 10, 200)
-    cv2.imshow("canny", img)
+    # cv2.imshow("canny", img)
 
     # img = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
     # cv2.imshow("dilate", img)
@@ -52,7 +52,7 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
     print(f"The cols: {cols}")
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points: Set[Point2D] = set()
-    border = round(min(rows, cols) * 0.1)
+    border = round(min(rows, cols) * 0.15)
     for i in range(border, rows - 1 - border):
         for j in range(border, cols - 1 - border):
             if cv_image[i, j] == 255:

@@ -5,8 +5,9 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
-import detector
-import path
+from . import detector, path
+# import detector
+# import path
 
 # Type definition
 Point2D = Tuple[float, float]  # (x, y)

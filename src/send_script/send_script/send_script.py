@@ -79,6 +79,8 @@ def copy_image_loop():
             # return to initial position
             go_to(350, 350, 730)
 
+            break
+
         elif time.time() - start > 120:
             break
 
@@ -89,7 +91,7 @@ def draw_face_loop():
     """
 
     # Take a picture of the face
-    go_to(350, 350, 730, 0, 0, 0)
+    go_to(350, 350, 730, 90, 0, 45)
     take_picture()
 
     start = time.time()
@@ -107,6 +109,11 @@ def draw_face_loop():
             images.append(image)
 
         if len(images) == 2:
+
+            # cv2.imshow('0', images[0])
+            # cv2.imshow('1', images[1])
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
 
             # Go to a point close to the table while computing the path
             go_to(350, 350, 300)
@@ -135,6 +142,8 @@ def draw_face_loop():
             # return to initial position
             go_to(350, 350, 730)
 
+            break
+
         elif time.time() - start > 120:
             break
 
@@ -147,7 +156,7 @@ def main(args=None):
     take_picture()
 
     # Enter into the main loop
-    copy_image_loop()
+    draw_face_loop()
 
     # Shutdown
     rclpy.shutdown()
