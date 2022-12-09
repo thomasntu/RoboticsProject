@@ -144,7 +144,7 @@ def calculate_path(cv2image, to_world=True, resize_dim=1920):
     return pp, jp
 
 
-def calculate_path_for_face(cv2image_face, cv2image_canvas, to_world=True, resize_dim=1920):
+def calculate_path_for_face(cv2image_face, cv2image_canvas, to_world=True, resize_dim=99999):
     """
     Returns
     -------

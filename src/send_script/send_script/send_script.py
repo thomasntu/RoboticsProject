@@ -23,7 +23,8 @@ def jump(p1, p2):
     go_to_point(p2)
 
 # draw at 230 for pilot mine
-def go_to_point(p, z=230):
+# draw at 219 for thin mine
+def go_to_point(p, z=219):
     go_to(p[0], p[1], z)
 
 
@@ -34,7 +35,7 @@ def go_to(x:float, y:float, z:float, a: float = -180.0, b: float = 0.0, c: float
 
 
 def take_picture():
-    send_script("Vision_DoJob(job1)")
+    send_script("Vision_DoJob(job2)")
 
 
 def copy_image_loop():
