@@ -22,15 +22,13 @@ def jump(p1, p2):
     go_to_point(p2, z=240)
     go_to_point(p2)
 
-
-# z=230: Touch the canvas
-# z=227: Draw
-def go_to_point(p, z=227):
+# draw at 230 for pilot mine
+def go_to_point(p, z=230):
     go_to(p[0], p[1], z)
 
 
-def go_to(x, y, z, a: float = -180.0, b: float = 0.0, c: float = 135.0):
-    target_p1 = f"{x}, {y}, {z}, {a:.2f}, {b:.2f}, {c:.2f}"
+def go_to(x:float, y:float, z:float, a: float = -180.0, b: float = 0.0, c: float = 135.0):
+    target_p1 = f"{x:.2f}, {y:.2f}, {z:.2f}, {a:.2f}, {b:.2f}, {c:.2f}"
     script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
     send_script(script1)
 
@@ -91,7 +89,7 @@ def draw_face_loop():
     """
 
     # Take a picture of the face
-    go_to(350, 350, 730, 90, 0, 45)
+    go_to(350, 350, 600, 90, 0, 45)
     take_picture()
 
     start = time.time()
@@ -157,6 +155,7 @@ def main(args=None):
 
     # Enter into the main loop
     draw_face_loop()
+    # copy_image_loop()
 
     # Shutdown
     rclpy.shutdown()
