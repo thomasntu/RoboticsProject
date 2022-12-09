@@ -5,7 +5,6 @@ from typing import List, Set, Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import pysnooper
 
 Point2D = Tuple[float, float]  # (x, y)
 
