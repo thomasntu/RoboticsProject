@@ -5,6 +5,7 @@ from typing import List, Set, Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import pysnooper
 
 Point2D = Tuple[float, float]  # (x, y)
 
@@ -25,6 +26,26 @@ def find_nn(point: Point2D, points: Set[Point2D]):
 
     return nn, min_dist
 
+def traverse_contour_tree(contours: List, hierarchy):
+    # Unpack np.array from [1, N, 4] to [N, 4]
+    hierarchy = hierarchy[0]
+
+    frontier = []
+    ret = []
+
+    frontier.append((0, 0, contours[0]))
+    while bool(frontier):
+        depth, idx, c = frontier.pop()
+        ret.append(c)
+
+        # Search child contours
+        idx = hierarchy[idx][2]
+        depth = depth + 1
+        while idx != -1:
+            frontier.append((depth, idx, contours[idx]))
+            idx = hierarchy[idx][0]
+
+    return ret, hierarchy
 
 def edge_detection_canny(cv_image):
     img = cv2.flip(cv_image, 1)
@@ -36,7 +57,7 @@ def edge_detection_canny(cv_image):
 
     # img = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
     # cv2.imshow("dilate", img)
-    # _, contours, hierarchy = cv2.findContours(img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    # _, contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # img = np.zeros(cv_image.shape, np.float32)
     # cv2.drawContours(img, contours, -1, (255, 255, 255), 1)
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
