@@ -176,7 +176,7 @@ def edge_detection_canny(cv2image: Image):
     """
     img = cv2.flip(cv2image, 1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.GaussianBlur(img, (3, 3), 0)
+    img = cv2.GaussianBlur(img, (7, 7), 1, 1)
     img = cv2.Canny(img, 10, 100)
 
     return img
@@ -189,9 +189,8 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
     [rows, cols] = np.shape(cv_image)
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points: Set[Point2D] = set()
-    margin = round(min(rows, cols) * 0.1)  # 10% of shorter side as margin
-    for i in range(margin, rows - 1 - margin):
-        for j in range(margin, cols - 1 - margin):
+    for i in range(rows - 1):
+        for j in range(cols - 1):
             if cv_image[i, j] == 255:
                 nx = j
                 ny = i
@@ -349,7 +348,7 @@ def calculate_path(canvas, template, to_world=True):
     return pp, jp
 
 
-def resize(img: Image, dim_limit=1080) -> Image:
+def resize(img: Image, dim_limit=720) -> Image:
     """
     TODO
     """
