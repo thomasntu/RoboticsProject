@@ -154,6 +154,18 @@ def main(args=None):
     go_to(275, 425, 730)
     take_picture()
 
+    go_to(350, 350, 730, a=-185)
+    take_picture()
+
+    go_to(350, 350, 730, a=-190)
+    take_picture()
+
+    go_to(350, 350, 730, a=-175)
+    take_picture()
+
+    go_to(350, 350, 730, a=-170)
+    take_picture()
+
     go_to(425, 275, 730)
     take_picture()
 

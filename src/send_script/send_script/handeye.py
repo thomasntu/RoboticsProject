@@ -1,10 +1,10 @@
 import glob
 from math import degrees
+from re import T
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-
 from scipy import linalg
 from scipy.spatial.transform import Rotation as R
 
@@ -12,18 +12,7 @@ rows = 6 #number of checkerboard rows.
 columns = 8 #number of checkerboard columns.
 world_scaling = 2.4 #change this to the real world square size. Or not.
 
-pos1 = np.array([275, 425, 730])
-pos2 = np.array([425, 275, 730])
-orient = np.array([-180, 0, 135])
-
-frame1 = np.zeros((4, 4))
-frame1[:3, :3] = R.from_euler('xyz', orient, degrees=True).as_matrix()
-frame1[:3, 3]  = pos1
-frame1[-1, -1] = 1
-print(frame1)
-
-
-def find_chessboard(image):
+def find_chessboard(imgs):
     #criteria used by checkerboard pattern detector.
     #Change this if the code can't find the checkerboard
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -39,7 +28,7 @@ def find_chessboard(image):
     # coordinates of the checkerboard in checkerboard world space.
     objpoints = [] # 3d point in real world space
 
-    for i, frame in enumerate(image):
+    for i, frame in enumerate(imgs):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         cv2.imshow(f'{i}', gray)
 
@@ -88,13 +77,34 @@ def triangulate(p1, p2, mtx1, mtx2, R, T):
     return np.array(p3ds)
 
 def main():
-    images1 = [cv2.imread('../../../images/stereo2/IMG203128.png', 0)]
-    height, width = images1[0].shape[0:2]
+    imgs = [
+        cv2.imread('../../../images/stereo2/IMG013153.png'),
+        cv2.imread('../../../images/stereo2/IMG013155.png'),
+        cv2.imread('../../../images/stereo2/IMG013156.png'),
+        cv2.imread('../../../images/stereo2/IMG013158.png'),
+        cv2.imread('../../../images/stereo2/IMG013159.png'),
+        cv2.imread('../../../images/stereo2/IMG013201.png'),
+    ]
+    height, width = imgs[0].shape[0:2]
 
-    # objp, imgp1 = find_chessboard(images1)
-    # ret, mtx1, dist1, _, _ = cv2.calibrateCamera([objp], [imgp1], (width, height), None, None)
+    frames = [
+        (R.from_euler('xyz', [-180, 0, 135], degrees=True).as_rotvec(), (np.array([275, 425, 730])).T),
+        (R.from_euler('xyz', [-185, 0, 135], degrees=True).as_rotvec(), (np.array([350, 350, 730])).T),
+        (R.from_euler('xyz', [-190, 0, 135], degrees=True).as_rotvec(), (np.array([350, 350, 730])).T),
+        (R.from_euler('xyz', [-175, 0, 135], degrees=True).as_rotvec(), (np.array([350, 350, 730])).T),
+        (R.from_euler('xyz', [-170, 0, 135], degrees=True).as_rotvec(), (np.array([350, 350, 730])).T),
+        (R.from_euler('xyz', [-180, 0, 135], degrees=True).as_rotvec(), (np.array([425, 275, 730])).T),
+    ]
+    rots, tvecs = [f[0] for f in frames], [f[1] for f in frames]
 
-    images2 = [cv2.imread('../../../images/stereo2/IMG203130.png', 0)]
+    objp, imgp = find_chessboard(imgs)
+    ret, CM1, dist1, r, t = cv2.calibrateCamera(objp, imgp, (width, height), None, None)
+
+    r, t = cv2.calibrateHandEye(
+        rots, tvecs, r, t, cv2.CALIB_HAND_EYE_TSAI
+    )
+    print(CM1, dist1)
+    print(r, t)
 
     # _, imgp2 = find_chessboard(images2)
     # ret, mtx2, dist2, _, _ = cv2.calibrateCamera([objp], [imgp2], (width, height), None, None)
@@ -105,20 +115,6 @@ def main():
     #     criteria = criteria, flags = cv2.CALIB_FIX_INTRINSIC
     # )
 
-    stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
-    disparity = stereo.compute(images1[0], images2[0])
-    plt.imshow(disparity, 'gray')
-    plt.show()
-
-    mtx = np.zeros((4, 4))
-    mtx[0:3, 0:3] = R
-    mtx[0:3, 3] = np.squeeze(T)
-    mtx[-1, -1] = 1
-
-    p3ds = triangulate(imgp1, imgp2, mtx1, mtx2, R, T)
-    # p3ds = np.append(p3ds, np.ones((p3ds.shape[0], 1)), axis=-1)
-    # print(p3ds)
-    # print((frame1 @ p3ds.T).T)
 
 if __name__ == "__main__":
     main()
