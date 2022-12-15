@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import rclpy
 from rclpy.node import Node
+from datetime import datetime
 
 sys.path.append('/home/robot/colcon_ws/install/tm_msgs/lib/python3.6/site-packages')
 from sensor_msgs.msg import Image
@@ -23,7 +24,7 @@ class ImageSub(Node):
 
         # Write the image to the images folder
         img = np.array(data.data).reshape(data.height, data.width, 3)
-        cv2.imwrite(f'images/IMG.png', img)
+        cv2.imwrite(f'images/stereo/IMG{datetime.strftime(datetime.now(), "%H%M%S")}.png', img)
 
 def main(args=None):
     rclpy.init(args=args)

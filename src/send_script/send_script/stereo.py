@@ -1,19 +1,29 @@
 import glob
+from math import degrees
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 from scipy import linalg
+from scipy.spatial.transform import Rotation as R
 
 rows = 6 #number of checkerboard rows.
 columns = 8 #number of checkerboard columns.
 world_scaling = 2.4 #change this to the real world square size. Or not.
 
-orientation1 = 0
-orientation2 = 0
+pos1 = np.array([275, 425, 730])
+pos2 = np.array([425, 275, 730])
+orient = np.array([-180, 0, 135])
 
-def find_chessboard(images):
+frame1 = np.zeros((4, 4))
+frame1[:3, :3] = R.from_euler('xyz', orient, degrees=True).as_matrix()
+frame1[:3, 3]  = pos1
+frame1[-1, -1] = 1
+print(frame1)
+
+
+def find_chessboard(image):
     #criteria used by checkerboard pattern detector.
     #Change this if the code can't find the checkerboard
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -29,7 +39,7 @@ def find_chessboard(images):
     # coordinates of the checkerboard in checkerboard world space.
     objpoints = [] # 3d point in real world space
 
-    for i, frame in enumerate(images):
+    for i, frame in enumerate(image):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         cv2.imshow(f'{i}', gray)
 
@@ -78,33 +88,37 @@ def triangulate(p1, p2, mtx1, mtx2, R, T):
     return np.array(p3ds)
 
 def main():
-    images = [cv2.imread(imname, 1) for imname in glob.glob('../../../images/stereo/orientation1-350-350-730/*.png')]
-    height, width = images[0].shape[0:2]
+    images1 = [cv2.imread('../../../images/stereo2/IMG203128.png', 0)]
+    height, width = images1[0].shape[0:2]
 
-    objp, imgp1 = find_chessboard(images)
-    ret, mtx1, dist1, _, _ = cv2.calibrateCamera(objp, imgp1, (width, height), None, None)
+    # objp, imgp1 = find_chessboard(images1)
+    # ret, mtx1, dist1, _, _ = cv2.calibrateCamera([objp], [imgp1], (width, height), None, None)
 
-    images = [cv2.imread(imname, 1) for imname in glob.glob('../../../images/stereo/orientation2-300-300-730/*.png')]
+    images2 = [cv2.imread('../../../images/stereo2/IMG203130.png', 0)]
 
-    _, imgp2 = find_chessboard(images)
-    ret, mtx2, dist2, _, _ = cv2.calibrateCamera(objp, imgp2, (width, height), None, None)
+    # _, imgp2 = find_chessboard(images2)
+    # ret, mtx2, dist2, _, _ = cv2.calibrateCamera([objp], [imgp2], (width, height), None, None)
 
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
-    ret, CM1, dist1, CM2, dist2, R, T, E, F = cv2.stereoCalibrate(
-        objp, imgp1, imgp2, mtx1, dist1, mtx2, dist2, (width, height),
-        criteria = criteria, flags = cv2.CALIB_FIX_INTRINSIC
-    )
+    # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
+    # ret, CM1, dist1, CM2, dist2, R, T, E, F = cv2.stereoCalibrate(
+    #     [objp], [imgp1], [imgp2], mtx1, dist1, mtx2, dist2, (width, height),
+    #     criteria = criteria, flags = cv2.CALIB_FIX_INTRINSIC
+    # )
+
+    stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
+    disparity = stereo.compute(images1[0], images2[0])
+    plt.imshow(disparity, 'gray')
+    plt.show()
 
     mtx = np.zeros((4, 4))
     mtx[0:3, 0:3] = R
     mtx[0:3, 3] = np.squeeze(T)
     mtx[-1, -1] = 1
 
-    # this call might cause segmentation fault error. This is due to calling cv2.imshow() and plt.show()
-    p3ds = triangulate(imgp1[0], imgp2[0], mtx1, mtx2, R, T)
-    p3ds = np.append(p3ds, np.ones((p3ds.shape[0], 1)), axis=-1)
-    print(p3ds)
-    print((mtx @ p3ds.T).T)
+    p3ds = triangulate(imgp1, imgp2, mtx1, mtx2, R, T)
+    # p3ds = np.append(p3ds, np.ones((p3ds.shape[0], 1)), axis=-1)
+    # print(p3ds)
+    # print((frame1 @ p3ds.T).T)
 
 if __name__ == "__main__":
     main()

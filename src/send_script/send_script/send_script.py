@@ -151,11 +151,14 @@ def main(args=None):
     rclpy.init(args=args)
 
     # Take a picture
-    go_to(350, 350, 730)
+    go_to(275, 425, 730)
+    take_picture()
+
+    go_to(425, 275, 730)
     take_picture()
 
     # Enter into the main loop
-    draw_face_loop()
+    # draw_face_loop()
     # copy_image_loop()
 
     # Shutdown
