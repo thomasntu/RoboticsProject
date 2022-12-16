@@ -18,16 +18,16 @@ def alpha_blend(a, b, alpha):
 
 
 def jump(p1, p2):
-    go_to_point(p1, z=240)
-    go_to_point(p2, z=240)
+    go_to_point(p1, z=245)
+    go_to_point(p2, z=245)
     go_to_point(p2)
 
 
 # draw at 230 for pilot mine
 # draw at 219 for thin mine
-# draw at 240 for marker pan
+# draw at 238 for black marker pan
 # draw at 234 for damaged marker pan
-def go_to_point(p, z=239):
+def go_to_point(p, z=238):
     go_to(p[0], p[1], z)
 
 
