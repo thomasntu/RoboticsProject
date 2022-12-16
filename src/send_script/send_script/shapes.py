@@ -6,11 +6,13 @@ import cv2
 import numpy as np
 
 from . import detector, path
+
 # import detector
 # import path
 
 # Type definition
 Point2D = Tuple[float, float]  # (x, y)
+Point3D = Tuple[float, float, float]  # (x, y)
 Frame2D = Tuple[float, float, float]  # (x, y, phi)
 
 # Homology transformation matrix
@@ -19,6 +21,31 @@ trans = np.array([
     [-3.74641915e-01, -3.76906441e-01, 8.38436436e+02],
     [-6.48402287e-07, -6.37826214e-06, 1.00000000e+00]
 ])
+
+trans_3d = np.array([[1.14994841e+02, -1.07163016e+02, -1.98997675e+05, 1.02822512e+03],
+                     [-1.07661695e+02, -9.99068873e+01, 1.86347863e+05, 1.11636878e+02],
+                     [-2.54207649e-13, 9.33370067e-14, 3.46043044e-09, 1.00000000e+02]])
+
+P1 = np.array([[1., 0., 0., 0.],
+               [0., 1., 0., 0.],
+               [0., 0., 1., 0.]])
+
+P2 = np.array([[9.99992298e-01, -3.92471720e-03, 1.65555584e-05, 2.68678368e-02],
+               [3.92471710e-03, 9.99992298e-01, 5.82079888e-06, 9.99638991e-01],
+               [-1.65782758e-05, -5.75577816e-06, 1.00000000e+00, 8.06771556e-05]])
+
+
+def stereo2world(image_point1: Point2D, image_point2: Point2D) -> Point3D:
+    """
+    Use the homology transformation matrix to translate from pixel coordinates to world coordinates
+    """
+    points_4d = cv2.triangulatePoints(P1, P2, [image_point1], [image_point2])
+
+    x, y, z = points_4d[0]
+    new_point = trans_3d @ np.array([x, y, z, 1]).T
+    x_w, y_w, z_w = new_point[:3]
+
+    return x_w, y_w, z_w
 
 
 def img2world(image_point: Point2D) -> Point2D:
