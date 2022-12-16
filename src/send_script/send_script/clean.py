@@ -275,7 +275,7 @@ def straighten_lines(path, jumps) -> List[Point2D]:
 
     for point in path[step + 1:]:
         prev_point = prev_points[0]
-        new_angle = round(math.atan2(prev_point[1] - point[1], prev_point[0] - point[0]), 2)
+        new_angle = round(math.atan2(prev_point[1] - point[1], prev_point[0] - point[0]), 1)
 
         jump = prev_point in jumps
         if jump or old_angle != new_angle:
