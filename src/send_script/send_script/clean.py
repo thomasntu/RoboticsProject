@@ -241,13 +241,17 @@ def path_planning(points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
     point = points.pop()
     path.append(point)
 
+    path_segment: List[Point2D] = []
     while len(points) > 0:
         nn, dist = find_nn(point, points)
         points.remove(nn)
-        path.append(nn)
+        path_segment.append(nn)
 
         if dist > 2:
-            jumps.append(point)
+            if len(path_segment) > 5:
+                jumps.append(point)
+                path.extend(path_segment)
+            path_segment.clear()
 
         point = nn
 
@@ -299,7 +303,7 @@ def get_path(cv2image: Image) -> Tuple[List[Point2D], List[Point2D]]:
     corners_detected = edge_detection_canny(cv2image)
     points = path_pixels_to_points(corners_detected)
     path, jumps = path_planning(points)
-    path = straighten_lines(path, jumps)
+    # path = straighten_lines(path, jumps)
     return path, jumps
 
 
