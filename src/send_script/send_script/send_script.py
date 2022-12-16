@@ -9,7 +9,7 @@ import numpy as np
 import rclpy
 from tqdm import tqdm
 
-from . import shapes
+from . import clean
 from .controller import send_script
 
 
@@ -22,13 +22,14 @@ def jump(p1, p2):
     go_to_point(p2, z=240)
     go_to_point(p2)
 
+
 # draw at 230 for pilot mine
 # draw at 219 for thin mine
 def go_to_point(p, z=219):
     go_to(p[0], p[1], z)
 
 
-def go_to(x:float, y:float, z:float, a: float = -180.0, b: float = 0.0, c: float = 135.0):
+def go_to(x: float, y: float, z: float, a: float = -180.0, b: float = 0.0, c: float = 135.0):
     target_p1 = f"{x:.2f}, {y:.2f}, {z:.2f}, {a:.2f}, {b:.2f}, {c:.2f}"
     script1 = "PTP(\"CPP\"," + target_p1 + ",100,200,0,false)"
     send_script(script1)
@@ -55,7 +56,7 @@ def copy_image_loop():
             # Go to a point close to the table while computing the path
             go_to(350, 350, 300)
 
-            path_nodes, jump_nodes = shapes.calculate_path(image)
+            path_nodes, jump_nodes = clean.copy_image(image)
 
             # TODO: Modify return type in calculate_path()
             # such that `if prev_node in jump_nodes` is valid
@@ -118,7 +119,7 @@ def draw_face_loop():
             go_to(350, 350, 300)
 
             # First image is canvas, second image is face
-            path_nodes, jump_nodes = shapes.calculate_path_for_face(images[1], images[0])
+            path_nodes, jump_nodes = clean.draw_face(images[1], images[0])
 
             # TODO: Modify return type in calculate_path()
             # such that `if prev_node in jump_nodes` is valid

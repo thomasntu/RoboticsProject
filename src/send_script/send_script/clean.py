@@ -192,10 +192,11 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
     Convert the white pixels in the given image to points in a set.
     """
     [rows, cols] = np.shape(cv_image)
+    margin = round(min(rows, cols) * 0.1)
     # Create the arrays with the coordinate of the point that belongs to the corners detected
     points: Set[Point2D] = set()
-    for i in range(rows - 1):
-        for j in range(cols - 1):
+    for i in range(margin, rows - 1 - margin):
+        for j in range(margin, cols - 1 - margin):
             if cv_image[i, j] == 255:
                 nx = j
                 ny = i
