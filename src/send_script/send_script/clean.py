@@ -245,14 +245,14 @@ def path_planning(points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
     while len(points) > 0:
         nn, dist = find_nn(point, points)
         points.remove(nn)
-        path_segment.append(nn)
 
         if dist > 2:
             if len(path_segment) > 5:
-                jumps.append(point)
+                jumps.append(path_segment[-1])
                 path.extend(path_segment)
             path_segment.clear()
 
+        path_segment.append(nn)
         point = nn
 
     return path, jumps
@@ -303,7 +303,7 @@ def get_path(cv2image: Image) -> Tuple[List[Point2D], List[Point2D]]:
     corners_detected = edge_detection_canny(cv2image)
     points = path_pixels_to_points(corners_detected)
     path, jumps = path_planning(points)
-    # path = straighten_lines(path, jumps)
+    path = straighten_lines(path, jumps)
     return path, jumps
 
 
@@ -335,9 +335,10 @@ def calculate_path(canvas, template, to_world=True) -> Tuple[List[Point2D], List
     Returns the transformed path as a list of points.
     If to_world is True, the path is scaled to world coordinates. Otherwise, it is left in pixel coordinates.
     """
-    path_points, jump_points = get_path(template)
+    resized_template = resize(template, 720)
+    path_points, jump_points = get_path(resized_template)
 
-    template_dim1, template_dim2 = template.shape[:2]
+    template_dim1, template_dim2 = resized_template.shape[:2]
     if template_dim1 >= template_dim2:
         # Template is vertical
         template_corners = [(0, 0), (0, template_dim1), (template_dim2, template_dim1), (template_dim2, 0)]
