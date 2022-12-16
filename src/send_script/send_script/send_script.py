@@ -60,26 +60,7 @@ def copy_image_loop():
 
             path_nodes, jump_nodes = clean.copy_image(image)
 
-            # TODO: Modify return type in calculate_path()
-            # such that `if prev_node in jump_nodes` is valid
-            path_nodes = np.array(path_nodes)
-            jump_nodes = np.array(jump_nodes)
-
-            prev_node = path_nodes[0]
-
-            # Go to the first node
-            go_to_point(prev_node, z=300)
-            go_to_point(prev_node)
-
-            for path_node in tqdm(path_nodes):
-                if prev_node in jump_nodes:
-                    jump(prev_node, path_node)
-                else:
-                    go_to_point(path_node)
-                prev_node = path_node
-
-            # return to initial position
-            go_to(350, 350, 730)
+            draw(path_nodes, jump_nodes)
 
             break
 
@@ -112,42 +93,41 @@ def draw_face_loop():
 
         if len(images) == 2:
 
-            # cv2.imshow('0', images[0])
-            # cv2.imshow('1', images[1])
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
-
             # Go to a point close to the table while computing the path
             go_to(350, 350, 300)
 
             # First image is canvas, second image is face
             path_nodes, jump_nodes = clean.draw_face(images[1], images[0])
 
-            # TODO: Modify return type in calculate_path()
-            # such that `if prev_node in jump_nodes` is valid
-            path_nodes = np.array(path_nodes)
-            jump_nodes = np.array(jump_nodes)
-
-            prev_node = path_nodes[0]
-
-            # Go to the first node
-            go_to_point(prev_node, z=300)
-            go_to_point(prev_node)
-
-            for path_node in tqdm(path_nodes):
-                if prev_node in jump_nodes:
-                    jump(prev_node, path_node)
-                else:
-                    go_to_point(path_node)
-                prev_node = path_node
-
-            # return to initial position
-            go_to(350, 350, 730)
+            draw(path_nodes, jump_nodes)
 
             break
 
         elif time.time() - start > 120:
             break
+
+
+def draw(path_nodes, jump_nodes):
+    # TODO: Modify return type in calculate_path()
+    # such that `if prev_node in jump_nodes` is valid
+    path_nodes = np.array(path_nodes)
+    jump_nodes = np.array(jump_nodes)
+
+    prev_node = path_nodes[0]
+
+    # Go to the first node
+    go_to_point(prev_node, z=300)
+    go_to_point(prev_node)
+
+    for path_node in tqdm(path_nodes):
+        if prev_node in jump_nodes:
+            jump(prev_node, path_node)
+        else:
+            go_to_point(path_node)
+        prev_node = path_node
+
+    # return to initial position
+    go_to(350, 350, 730)
 
 
 def main(args=None):
