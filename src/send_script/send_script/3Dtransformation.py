@@ -25,3 +25,9 @@ world_coords_converted = points_4d[:3].T
 
 print(
     world_coords_converted)  # should print the 3D world coordinates corresponding to the pixel coordinates in both images
+
+
+
+# center of checkerboard 400, 400
+# checker width 24.4
+# imag positions 1: 300, 300; 2: 400, 400

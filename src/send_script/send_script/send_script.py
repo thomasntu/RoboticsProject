@@ -10,7 +10,7 @@ import rclpy
 from tqdm import tqdm
 
 from . import clean
-from .controller import send_script
+from .controller import send_script, set_io
 
 
 def alpha_blend(a, b, alpha):
@@ -37,8 +37,8 @@ def go_to(x: float, y: float, z: float, a: float = -180.0, b: float = 0.0, c: fl
     send_script(script1)
 
 
-def take_picture():
-    send_script("Vision_DoJob(job2)")
+def take_picture(job=2):
+    send_script(f"Vision_DoJob(job{job})")
 
 
 def copy_image_loop():
@@ -142,8 +142,8 @@ def main(args=None):
     # Take a picture
     go_to(350, 350, 730)
     take_picture()
-
-    # go_to(350, 350, 239)
+    # set_io(1.0)
+    # go_to(326.5, 400, 100, b=0, c=0)
 
     # Enter into the main loop
     draw_face_loop()
