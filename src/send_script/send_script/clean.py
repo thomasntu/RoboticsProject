@@ -105,7 +105,9 @@ def get_sheets(cv2image: np.ndarray, n: int) -> List[Rectangle]:
 
 def find_dest(rectangle: Rectangle) -> Rectangle:
     """
-    TODO
+    Find the destination rectangle to warp the original rectangle to.
+    The destination rectangle has a maximum width and height, and the corners are ordered top-left, top-right,
+    bottom-right, bottom-left.
     """
     (tl, tr, br, bl) = rectangle
     # Finding the maximum width.
@@ -126,7 +128,9 @@ def find_dest(rectangle: Rectangle) -> Rectangle:
 
 def find_canvas_and_template(cv2image: Image, rectangles: List[Rectangle]) -> Tuple[Rectangle, Image]:
     """
-    TODO
+    Given 2 rectangles, find the canvas and template rectangles in the image.
+    The canvas rectangle is the one with no edges, while the template rectangle is the one with edges.
+    Returns a tuple containing the canvas rectangle and the template image.
     """
     assert len(rectangles) == 2
 
@@ -157,7 +161,7 @@ def find_canvas_and_template(cv2image: Image, rectangles: List[Rectangle]) -> Tu
 
 def get_face(cv2image: Image):
     """
-    TODO
+    Detect and return the face in the given image.
     """
     # Load the cascade
     face_cascade = cv2.CascadeClassifier('face_detection/haarcascade_frontalface_default.xml')
@@ -172,7 +176,8 @@ def get_face(cv2image: Image):
 
 def edge_detection_canny(cv2image: Image):
     """
-    TODO
+    Perform edge detection on the given image using the Canny algorithm.
+    Returns the image with edges highlighted.
     """
     img = cv2.flip(cv2image, 1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -184,7 +189,7 @@ def edge_detection_canny(cv2image: Image):
 
 def path_pixels_to_points(cv_image) -> Set[Point2D]:
     """
-    TODO
+    Convert the white pixels in the given image to points in a set.
     """
     [rows, cols] = np.shape(cv_image)
     # Create the arrays with the coordinate of the point that belongs to the corners detected
@@ -201,14 +206,15 @@ def path_pixels_to_points(cv_image) -> Set[Point2D]:
 
 def distance(a: Point2D, b: Point2D):
     """
-    TODO
+    Calculates the Euclidean distance between two points in 2D space.
     """
     return math.sqrt(math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2))
 
 
 def find_nn(point: Point2D, points: Set[Point2D]):
     """
-    TODO
+    Finds the nearest neighbor (NN) of a given point among a set of points using the Euclidean distance metric.
+    Returns the NN point and the distance between the two points.
     """
     assert len(points) > 0
     min_dist = float('inf')
@@ -224,7 +230,9 @@ def find_nn(point: Point2D, points: Set[Point2D]):
 
 def path_planning(points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
     """
-    TODO
+    Plans a path through a set of 2D points, identifying "jumps" (points more than 2 units away from their
+    nearest neighbor) along the way.
+    Returns the path as a list of points and a list of jump points.
     """
     jumps: List[Point2D] = []
     path: List[Point2D] = []
@@ -245,9 +253,12 @@ def path_planning(points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
     return path, jumps
 
 
-def straighten_lines(path, jumps):
+def straighten_lines(path, jumps) -> List[Point2D]:
     """
-    TODO
+    Modifies a path by identifying and removing unnecessary points on lines (points where the direction of the path
+    does not change).
+    Jumps (points more than 2 units away from their nearest neighbor) are preserved as points.
+    Returns the modified path as a list of points.
     """
     step = 2
     prev_points = path[1:step + 1]
@@ -280,7 +291,9 @@ def straighten_lines(path, jumps):
 
 def get_path(cv2image: Image) -> Tuple[List[Point2D], List[Point2D]]:
     """
-    TODO
+    Generates a path through an image.
+    Returns the path as a list of points and a list of
+    "jump" points (points more than 2 units away from their nearest neighbor).
     """
     corners_detected = edge_detection_canny(cv2image)
     points = path_pixels_to_points(corners_detected)
@@ -289,27 +302,33 @@ def get_path(cv2image: Image) -> Tuple[List[Point2D], List[Point2D]]:
     return path, jumps
 
 
-def copy_image(cv2image: Image, to_world=True):
+def copy_image(cv2image: Image, to_world=True) -> Tuple[List[Point2D], List[Point2D]]:
     """
-    TODO
+    Generates a path for copying an image from a canvas onto a template.
+    Returns the path as a list of points.
+    If to_world is True, the path is scaled to world coordinates. Otherwise, it is left in pixel coordinates.
     """
     sheets = get_sheets(cv2image, 2)
     canvas, template = find_canvas_and_template(cv2image, sheets)
     return calculate_path(canvas, template, to_world=to_world)
 
 
-def draw_face(cv2image_face: Image, cv2image_canvas: Image, to_world=True):
+def draw_face(cv2image_face: Image, cv2image_canvas: Image, to_world=True) -> Tuple[List[Point2D], List[Point2D]]:
     """
-    TODO
+    Generates a path for drawing a face from a source image onto a canvas.
+    Returns the path as a list of points.
+    If to_world is True, the path is scaled to world coordinates. Otherwise, it is left in pixel coordinates.
     """
     [canvas] = get_sheets(cv2image_canvas, 1)
     template = get_face(cv2image_face)
     return calculate_path(canvas, template, to_world=to_world)
 
 
-def calculate_path(canvas, template, to_world=True):
+def calculate_path(canvas, template, to_world=True) -> Tuple[List[Point2D], List[Point2D]]:
     """
-    TODO
+    Transforms a path from a template image to world coordinates or pixel coordinates on a canvas image.
+    Returns the transformed path as a list of points.
+    If to_world is True, the path is scaled to world coordinates. Otherwise, it is left in pixel coordinates.
     """
     path_points, jump_points = get_path(template)
 
@@ -350,7 +369,8 @@ def calculate_path(canvas, template, to_world=True):
 
 def resize(img: Image, dim_limit=720) -> Image:
     """
-    TODO
+    Resizes an image so that the maximum dimension (either width or height) does not exceed a given limit.
+    Returns the resized image.
     """
     max_dim = max(img.shape)
     if max_dim > dim_limit:
@@ -361,6 +381,13 @@ def resize(img: Image, dim_limit=720) -> Image:
 
 
 def main():
+    """
+    Main function that reads an input image, processes it, and displays the result.
+    If the output command line argument is "copy", the function generates a path for copying the input image.
+    If the output command line argument is "face", the function generates a path for drawing a face from a second
+    input image onto the canvas.
+    The image is resized if its maximum dimension exceeds 720 pixels.
+    """
     args = parse_args()
 
     img: Image = cv2.imread(args.input)
@@ -389,7 +416,8 @@ def main():
 
 def parse_args() -> argparse.Namespace:
     """
-    TODO
+    Parses command line arguments using argparse.
+    Returns an object with the parsed arguments as attributes.
     """
     parser = argparse.ArgumentParser(description="Document detector")
     parser.add_argument('-i', '--input', help="Path to image")
