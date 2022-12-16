@@ -93,7 +93,7 @@ def draw_face_loop():
     """
 
     # Take a picture of the face
-    go_to(450, 250, 600, 90, 0, 45)
+    go_to(450, 250, 650, 90, 0, 45)
     take_picture()
 
     start = time.time()
