@@ -25,7 +25,9 @@ def jump(p1, p2):
 
 # draw at 230 for pilot mine
 # draw at 219 for thin mine
-def go_to_point(p, z=219):
+# draw at 240 for marker pan
+# draw at 234 for damaged marker pan
+def go_to_point(p, z=239):
     go_to(p[0], p[1], z)
 
 
@@ -151,9 +153,17 @@ def draw_face_loop():
 def main(args=None):
     rclpy.init(args=args)
 
+    filename = f'images/IMG.png'
+    if exists(filename):
+        time.sleep(1)
+        remove(filename)
+
+
     # Take a picture
     go_to(350, 350, 730)
     take_picture()
+
+    # go_to(350, 350, 239)
 
     # Enter into the main loop
     draw_face_loop()
