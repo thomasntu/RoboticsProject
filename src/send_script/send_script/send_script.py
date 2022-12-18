@@ -9,7 +9,7 @@ import numpy as np
 import rclpy
 from tqdm import tqdm
 
-from . import clean, shapes
+from . import clean
 from .controller import send_script
 
 
@@ -130,64 +130,6 @@ def draw(path_nodes, jump_nodes):
     go_to(350, 350, 730)
 
 
-def grab_3d_loop():
-    start = time.time()
-    filename = f'images/IMG.png'
-
-    images = []
-
-    idx = 0
-
-    while True:
-        if exists(filename):
-            print('file found')
-
-            time.sleep(1)
-
-            image = cv2.imread(filename)
-            remove(filename)
-
-            if idx == 0:
-                print('take picture')
-                # Take a picture of the face
-                go_to(300, 300, 730)
-                take_picture()
-                idx += 1
-                continue
-
-            elif idx == 1:
-                images.append(image)
-                go_to(400, 400, 730)
-                take_picture()
-                idx += 1
-
-            else:
-                images.append(image)
-
-        elif len(images) == 2:
-
-            objs1 = shapes.detect(images[0])
-            objs2 = shapes.detect(images[1])
-
-            coord1 = objs1[0][:2]
-            coord2 = objs2[0][:2]
-
-            print(coord1)
-            print(coord2)
-
-            coords = shapes.stereo2world(coord1, coord2)
-
-            print(coords)
-
-            go_to(coords[0][0], coords[1][0], coords[2][0] + 50)
-            go_to(coords[0][0], coords[1][0], coords[2][0])
-
-            break
-
-        elif time.time() - start > 120:
-            break
-
-
 def main(args=None):
     rclpy.init(args=args)
 
@@ -199,13 +141,10 @@ def main(args=None):
     # Take a picture
     go_to(350, 350, 730)
     take_picture()
-    # set_io(1.0)
-    # go_to(326.5, 400, 100, b=0, c=0)
 
     # Enter into the main loop
     draw_face_loop()
     # copy_image_loop()
-    # grab_3d_loop()
 
     # Shutdown
     rclpy.shutdown()
