@@ -108,7 +108,6 @@ def draw_face_loop():
 
 
 def draw(path_nodes, jump_nodes):
-    # such that `if prev_node in jump_nodes` is valid
     path_nodes = np.array(path_nodes)
     jump_nodes = np.array(jump_nodes)
 
