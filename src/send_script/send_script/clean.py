@@ -239,9 +239,8 @@ def path_planning(points: Set[Point2D]) -> Tuple[List[Point2D], List[Point2D]]:
     path: List[Point2D] = []
 
     point = points.pop()
-    path.append(point)
 
-    path_segment: List[Point2D] = []
+    path_segment: List[Point2D] = [point]
     while len(points) > 0:
         nn, dist = find_nn(point, points)
         points.remove(nn)
