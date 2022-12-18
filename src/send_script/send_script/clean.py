@@ -287,9 +287,6 @@ def straighten_lines(path, jumps) -> List[Point2D]:
 
     corners.extend(prev_points[-step:])
 
-    jump_diff = set(jumps) - set(corners)
-    print(jump_diff)
-
     return corners
 
 
