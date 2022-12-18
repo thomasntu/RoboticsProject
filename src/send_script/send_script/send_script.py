@@ -140,32 +140,47 @@ def grab_3d_loop():
 
     while True:
         if exists(filename):
+            print('file found')
+
             time.sleep(1)
 
             image = cv2.imread(filename)
             remove(filename)
 
             if idx == 0:
+                print('take picture')
                 # Take a picture of the face
                 go_to(300, 300, 730)
                 take_picture()
                 idx += 1
-                break
+                continue
+
             elif idx == 1:
                 images.append(image)
                 go_to(400, 400, 730)
                 take_picture()
+                idx += 1
+
             else:
                 images.append(image)
 
-        if len(images) == 2:
+        elif len(images) == 2:
 
             objs1 = shapes.detect(images[0])
             objs2 = shapes.detect(images[1])
 
-            coords = shapes.stereo2world(objs1[0][:2], objs2[0][:2])
+            coord1 = objs1[0][:2]
+            coord2 = objs2[0][:2]
 
-            go_to(coords[0], coords[1], coords[2])
+            print(coord1)
+            print(coord2)
+
+            coords = shapes.stereo2world(coord1, coord2)
+
+            print(coords)
+
+            go_to(coords[0][0], coords[1][0], coords[2][0] + 50)
+            go_to(coords[0][0], coords[1][0], coords[2][0])
 
             break
 
@@ -188,9 +203,9 @@ def main(args=None):
     # go_to(326.5, 400, 100, b=0, c=0)
 
     # Enter into the main loop
-    # draw_face_loop()
+    draw_face_loop()
     # copy_image_loop()
-    grab_3d_loop()
+    # grab_3d_loop()
 
     # Shutdown
     rclpy.shutdown()

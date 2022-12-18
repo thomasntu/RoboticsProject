@@ -39,10 +39,13 @@ def stereo2world(image_point1: Point2D, image_point2: Point2D) -> Point3D:
     """
     Use the homology transformation matrix to translate from pixel coordinates to world coordinates
     """
-    points_4d = cv2.triangulatePoints(P1, P2, [image_point1], [image_point2])
 
-    x, y, z = points_4d[0]
-    new_point = trans_3d @ np.array([x, y, z, 1]).T
+    point_4d = cv2.triangulatePoints(P1, P2, np.array(image_point1), np.array(image_point2))
+    point_4d /= point_4d[3]  # normalize homogeneous coordinates
+
+    print(point_4d.T)
+
+    new_point = trans_3d @ point_4d
     x_w, y_w, z_w = new_point[:3]
 
     return x_w, y_w, z_w
@@ -67,7 +70,7 @@ def find_contours(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
-    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
 
